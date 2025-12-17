@@ -152,7 +152,8 @@ PeriodTrackerContent.displayName = "PeriodTrackerContent";
  * Uses memoized selectors and optimized re-renders
  */
 const PeriodTracker = () => {
-  const menstrualData = usePeriodTracking();
+  // usePeriodTracking returns { menstrualData, loading, error, hasPeriodData }
+  const { menstrualData, loading, hasPeriodData } = usePeriodTracking();
   const userProfile = { name: "User" };
 
   // Memoize selector calculations to prevent unnecessary recalculation
@@ -165,6 +166,18 @@ const PeriodTracker = () => {
     () => selectHealthInsights(menstrualData, userProfile, null),
     [menstrualData, userProfile]
   );
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100">
+        <div className="text-center space-y-2">
+          <div className="text-5xl animate-pulse">🌸</div>
+          <p className="text-gray-600">Loading your cycle data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <PeriodTrackerContent trackerState={trackerState} insights={insights} />

@@ -6,6 +6,10 @@ const HealthHome = () => {
   const userData = getUserData();
   const userName = userData.name || "there";
 
+  const handleLogout = () => {
+    localStorage.clear();
+    window.location.reload();
+  }
   return (
     <PageLayout title="Health">
       <div className="flex flex-col h-full">
@@ -15,6 +19,8 @@ const HealthHome = () => {
             Welcome back, {userName}! 👋
           </h1>
           <p className="text-gray-600">Track your wellness journey</p>
+          <button className="bg-green-400 p-4"
+          onClick={handleLogout}>logout</button>
         </div>
 
         {/* Period Tracker Widget */}
