@@ -1,58 +1,205 @@
-import React, { useState, useCallback, useMemo } from "react";
-import { IonButton, IonIcon } from "@ionic/react";
-import { chevronForward, chevronBack } from "ionicons/icons";
-import {
-  getAllQuestions,
-  getQuestionsByCategory,
-  validateAnswer,
-} from "../data/questionnaire.js";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  useEffect,
+} from "react";
+import { IonIcon } from "@ionic/react";
+import { closeOutline } from "ionicons/icons";
+import { getAllQuestions, validateAnswer } from "../data/questionnaire.js";
 import { storageService } from "@/infrastructure/storage/storageService.js";
 
 /**
- * Multi-Step Questionnaire Modal Component
- * Displays 20 medical questions in paginated steps
- * - 5 questions per step
- * - Full validation and error handling
- * - Progressive save to localStorage
+ * Floating Image Component - Individual image in the carousel
+ * Images float above the white card and swipe independently
+ * Uses percentage-based positioning for responsiveness
+ */
+const FloatingImage = React.memo(
+  ({ question, position, dragOffset, containerWidth }) => {
+    const [imageError, setImageError] = useState(false);
+
+    // Calculate transform based on position and drag offset
+    // Use percentage of container width for responsive spacing
+    const getImageStyle = () => {
+      // Responsive spacing: 40% of container width between images, clamped
+      const spacing = Math.min(Math.max(containerWidth * 0.35, 120), 200);
+      const baseOffset = position * spacing;
+      const totalOffset = baseOffset + dragOffset;
+
+      // Scale based on distance from center (relative to container)
+      const distanceFromCenter = Math.abs(totalOffset);
+      const maxDistance = containerWidth * 0.5;
+      const scale = Math.max(0.5, 1 - (distanceFromCenter / maxDistance) * 0.5);
+
+      // Opacity based on distance
+      const opacity = Math.max(
+        0.2,
+        1 - (distanceFromCenter / maxDistance) * 0.8
+      );
+
+      // Blur for side items
+      const blur =
+        distanceFromCenter > 30 ? Math.min(2, distanceFromCenter / 80) : 0;
+
+      return {
+        transform: `translateX(calc(-50% + ${totalOffset}px)) translateY(-50%) scale(${scale})`,
+        opacity,
+        filter: blur > 0 ? `blur(${blur}px)` : "none",
+        zIndex: 100 - Math.abs(position),
+      };
+    };
+
+    const renderImage = () => {
+      if (question?.image && !imageError) {
+        return (
+          <img
+            src={question.image}
+            alt=""
+            onError={() => setImageError(true)}
+            className="w-36 h-36 xs:w-40 xs:h-40 sm:w-48 sm:h-48 md:w-56 md:h-56 object-contain drop-shadow-2xl"
+            draggable={false}
+          />
+        );
+      }
+      if (question?.emoji) {
+        return (
+          <div className="text-6xl xs:text-7xl sm:text-8xl md:text-9xl drop-shadow-lg select-none">
+            {question.emoji}
+          </div>
+        );
+      }
+      return (
+        <div className="w-28 h-28 xs:w-32 xs:h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 bg-white/30 rounded-full flex items-center justify-center backdrop-blur-sm">
+          <span className="text-3xl xs:text-4xl sm:text-5xl">✨</span>
+        </div>
+      );
+    };
+
+    return (
+      <div
+        className="absolute top-1/2 left-1/2 transition-all duration-300 ease-out pointer-events-none"
+        style={getImageStyle()}
+      >
+        {renderImage()}
+      </div>
+    );
+  }
+);
+
+FloatingImage.displayName = "FloatingImage";
+
+/**
+ * Main Questionnaire Modal with Swipeable Images + Fixed Card
+ * Like Starbucks UI: images swipe, white card content updates
  */
 const ComprehensiveQuestionnaireModal = ({ isOpen, onClose, onComplete }) => {
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [containerWidth, setContainerWidth] = useState(360);
 
-  // Get all questions and organize into steps (5 per step)
+  // Touch handling refs
+  const touchStartX = useRef(0);
+  const containerRef = useRef(null);
+
+  // Track container width for responsive image positioning
+  useEffect(() => {
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.offsetWidth);
+      }
+    };
+
+    updateWidth();
+    window.addEventListener("resize", updateWidth);
+    return () => window.removeEventListener("resize", updateWidth);
+  }, [isOpen]);
+
+  // Get all questions
   const allQuestions = useMemo(() => getAllQuestions(), []);
-  const questionsPerStep = 5;
-  const totalSteps = Math.ceil(allQuestions.length / questionsPerStep);
+  const totalQuestions = allQuestions.length;
+  const currentQuestion = allQuestions[currentQuestionIndex];
 
-  // Get questions for current step
-  const currentQuestions = useMemo(() => {
-    const start = currentStep * questionsPerStep;
-    const end = start + questionsPerStep;
-    return allQuestions.slice(start, end);
-  }, [currentStep, allQuestions]);
-
-  // Calculate step labels
-  const stepLabels = useMemo(() => {
-    return [
-      "Cycle Basics",
-      "Symptoms",
-      "Symptoms (Continued)",
-      "Lifestyle",
-      "Health History",
-    ];
+  /**
+   * Handle touch/mouse start
+   */
+  const handleDragStart = useCallback((clientX) => {
+    touchStartX.current = clientX;
+    setIsDragging(true);
   }, []);
+
+  /**
+   * Handle touch/mouse move
+   */
+  const handleDragMove = useCallback(
+    (clientX) => {
+      if (!isDragging) return;
+      const diff = clientX - touchStartX.current;
+      setDragOffset(diff);
+    },
+    [isDragging]
+  );
+
+  /**
+   * Handle touch/mouse end - determine swipe direction
+   */
+  const handleDragEnd = useCallback(() => {
+    if (!isDragging) return;
+    setIsDragging(false);
+
+    const threshold = 80;
+
+    if (dragOffset < -threshold && currentQuestionIndex < totalQuestions - 1) {
+      // Swipe left - next question (if answered)
+      const answer = answers[currentQuestion?.id];
+      if (answer !== undefined && answer !== null && answer !== "") {
+        setCurrentQuestionIndex((prev) => prev + 1);
+      } else {
+        setErrors((prev) => ({
+          ...prev,
+          [currentQuestion?.id]: "Please answer this question",
+        }));
+      }
+    } else if (dragOffset > threshold && currentQuestionIndex > 0) {
+      // Swipe right - previous question
+      setCurrentQuestionIndex((prev) => prev - 1);
+    }
+
+    setDragOffset(0);
+  }, [
+    isDragging,
+    dragOffset,
+    currentQuestionIndex,
+    totalQuestions,
+    answers,
+    currentQuestion,
+  ]);
+
+  // Touch event handlers
+  const handleTouchStart = (e) => handleDragStart(e.touches[0].clientX);
+  const handleTouchMove = (e) => handleDragMove(e.touches[0].clientX);
+  const handleTouchEnd = () => handleDragEnd();
+
+  // Mouse event handlers for desktop testing
+  const handleMouseDown = (e) => handleDragStart(e.clientX);
+  const handleMouseMove = (e) => handleDragMove(e.clientX);
+  const handleMouseUp = () => handleDragEnd();
+  const handleMouseLeave = () => {
+    if (isDragging) handleDragEnd();
+  };
 
   /**
    * Handle answer change
    */
   const handleAnswerChange = useCallback(
-    (questionId, value) => {
+    (questionId, value, shouldAutoAdvance = false) => {
       const question = allQuestions.find((q) => q.id === questionId);
       if (!question) return;
 
-      // Validate answer - validateAnswer now returns error string or null
       const error = validateAnswer(questionId, value);
       if (error) {
         setErrors((prev) => ({ ...prev, [questionId]: error }));
@@ -68,83 +215,67 @@ const ComprehensiveQuestionnaireModal = ({ isOpen, onClose, onComplete }) => {
         ...prev,
         [questionId]: value,
       }));
+
+      // Auto-advance for select/radio
+      if (
+        shouldAutoAdvance &&
+        !error &&
+        currentQuestionIndex < totalQuestions - 1
+      ) {
+        setTimeout(() => {
+          setCurrentQuestionIndex((prev) => prev + 1);
+        }, 400);
+      }
     },
-    [allQuestions]
+    [allQuestions, currentQuestionIndex, totalQuestions]
   );
 
   /**
-   * Check if current step is complete
+   * Handle next question
    */
-  const isStepComplete = useCallback(() => {
-    return currentQuestions.every(
-      (question) =>
-        answers[question.id] !== undefined &&
-        answers[question.id] !== null &&
-        answers[question.id] !== ""
-    );
-  }, [currentQuestions, answers]);
+  const handleNext = useCallback(() => {
+    const answer = answers[currentQuestion?.id];
 
-  /**
-   * Handle next step
-   */
-  const handleNextStep = useCallback(() => {
-    if (!isStepComplete()) {
-      // Mark incomplete questions as having errors
-      const newErrors = {};
-      currentQuestions.forEach((question) => {
-        if (!answers[question.id]) {
-          newErrors[question.id] = "This field is required";
-        }
-      });
-      setErrors(newErrors);
+    if (answer === undefined || answer === null || answer === "") {
+      setErrors((prev) => ({
+        ...prev,
+        [currentQuestion?.id]: "Please answer this question",
+      }));
       return;
     }
 
-    if (currentStep < totalSteps - 1) {
-      setCurrentStep((prev) => prev + 1);
-      window.scrollTo(0, 0);
+    if (currentQuestionIndex < totalQuestions - 1) {
+      setCurrentQuestionIndex((prev) => prev + 1);
     }
-  }, [currentStep, totalSteps, currentQuestions, answers, isStepComplete]);
-
-  /**
-   * Handle previous step
-   */
-  const handlePreviousStep = useCallback(() => {
-    if (currentStep > 0) {
-      setCurrentStep((prev) => prev - 1);
-      window.scrollTo(0, 0);
-    }
-  }, [currentStep]);
+  }, [currentQuestionIndex, totalQuestions, currentQuestion, answers]);
 
   /**
    * Handle submission
    */
   const handleSubmit = useCallback(async () => {
-    if (!isStepComplete()) {
-      const newErrors = {};
-      currentQuestions.forEach((question) => {
-        if (!answers[question.id]) {
-          newErrors[question.id] = "This field is required";
-        }
-      });
-      setErrors(newErrors);
+    const answer = answers[currentQuestion?.id];
+
+    if (answer === undefined || answer === null || answer === "") {
+      setErrors((prev) => ({
+        ...prev,
+        [currentQuestion?.id]: "Please answer this question",
+      }));
       return;
     }
 
     setIsSubmitting(true);
     try {
-      // Save all answers to storage
       allQuestions.forEach((question) => {
-        storageService.questionnaireService.addAnswer(
-          question.id,
-          answers[question.id]
-        );
+        if (answers[question.id] !== undefined) {
+          storageService.questionnaireService.addAnswer(
+            question.id,
+            answers[question.id]
+          );
+        }
       });
 
-      // Mark questionnaire as complete
       storageService.questionnaireService.complete();
 
-      // Call completion callback
       if (onComplete) {
         onComplete(answers);
       }
@@ -154,229 +285,253 @@ const ComprehensiveQuestionnaireModal = ({ isOpen, onClose, onComplete }) => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [currentQuestions, isStepComplete, answers, allQuestions, onComplete]);
+  }, [currentQuestion, allQuestions, answers, onComplete]);
 
-  if (!isOpen) return null;
+  /**
+   * Render input based on question type
+   */
+  const renderInput = () => {
+    if (!currentQuestion) return null;
+    const value = answers[currentQuestion.id];
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end">
-      <div className="w-full bg-white rounded-t-3xl max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-purple-50 to-pink-50 px-6 py-6 border-b border-gray-200 z-10">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-800">
-                Health Questionnaire
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">
-                {stepLabels[currentStep]}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-2xl font-bold text-purple-600">
-                {currentStep + 1}
-              </p>
-              <p className="text-xs text-gray-600">of {totalSteps} steps</p>
-            </div>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-            <div
-              className="bg-gradient-to-r from-purple-500 to-pink-500 h-full transition-all duration-300"
-              style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Questions */}
-        <div className="px-6 py-6 space-y-6">
-          {currentQuestions.map((question) => (
-            <QuestionField
-              key={question.id}
-              question={question}
-              value={answers[question.id]}
-              onChange={(value) => handleAnswerChange(question.id, value)}
-              error={errors[question.id]}
-            />
-          ))}
-        </div>
-
-        {/* Actions */}
-        <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 flex gap-3">
-          {currentStep > 0 && (
-            <IonButton
-              expand="block"
-              fill="outline"
-              onClick={handlePreviousStep}
-              disabled={isSubmitting}
-            >
-              <IonIcon slot="start" icon={chevronBack} />
-              Previous
-            </IonButton>
-          )}
-
-          {currentStep < totalSteps - 1 ? (
-            <IonButton
-              expand="block"
-              color="primary"
-              onClick={handleNextStep}
-              disabled={isSubmitting}
-            >
-              Next
-              <IonIcon slot="end" icon={chevronForward} />
-            </IonButton>
-          ) : (
-            <IonButton
-              expand="block"
-              color="success"
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Saving..." : "Complete Questionnaire"}
-            </IonButton>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-/**
- * Individual Question Field Component
- * Handles different question types (text, select, multiselect, number, date)
- */
-const QuestionField = React.memo(({ question, value, onChange, error }) => {
-  const renderField = () => {
-    switch (question.type) {
-      case "text":
-        return (
-          <input
-            type="text"
-            value={value || ""}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={question.placeholder || "Enter your answer"}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-          />
-        );
-
-      case "number":
-        return (
-          <input
-            type="number"
-            value={value || ""}
-            onChange={(e) => onChange(parseInt(e.target.value, 10) || null)}
-            placeholder={question.placeholder || "Enter a number"}
-            min={question.min}
-            max={question.max}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-          />
-        );
-
-      case "date":
-        return (
-          <input
-            type="date"
-            value={value || ""}
-            onChange={(e) => onChange(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-          />
-        );
-
+    switch (currentQuestion.type) {
       case "select":
+      case "radio":
         return (
-          <select
-            value={value || ""}
-            onChange={(e) => onChange(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
-          >
-            <option value="">Select an option...</option>
-            {question.options?.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <div className="flex flex-wrap justify-center gap-2">
+            {currentQuestion.options?.map((option) => {
+              const isSelected = value === option.value;
+              return (
+                <button
+                  key={option.value}
+                  onClick={() =>
+                    handleAnswerChange(currentQuestion.id, option.value, true)
+                  }
+                  className={`px-5 py-2.5 rounded-full font-medium text-sm transition-all duration-200 ${
+                    isSelected
+                      ? "bg-gray-900 text-white shadow-lg scale-105"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
         );
 
       case "multiselect":
         return (
-          <div className="space-y-2">
-            {question.options?.map((option) => (
-              <label
-                key={option.value}
-                className="flex items-center gap-3 cursor-pointer"
-              >
-                <input
-                  type="checkbox"
-                  checked={(value || []).includes(option.value)}
-                  onChange={(e) => {
+          <div className="flex flex-wrap justify-center gap-2">
+            {currentQuestion.options?.map((option) => {
+              const isSelected = (value || []).includes(option.value);
+              return (
+                <button
+                  key={option.value}
+                  onClick={() => {
                     const newValue = Array.isArray(value) ? [...value] : [];
-                    if (e.target.checked) {
-                      newValue.push(option.value);
-                    } else {
+                    if (isSelected) {
                       newValue.splice(newValue.indexOf(option.value), 1);
+                    } else {
+                      newValue.push(option.value);
                     }
-                    onChange(newValue);
+                    handleAnswerChange(currentQuestion.id, newValue, false);
                   }}
-                  className="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
-                />
-                <span className="text-gray-700">{option.label}</span>
-              </label>
-            ))}
+                  className={`px-5 py-2.5 rounded-full font-medium text-sm transition-all duration-200 ${
+                    isSelected
+                      ? "bg-gray-900 text-white shadow-lg scale-105"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
           </div>
         );
 
-      case "radio":
+      case "number":
         return (
-          <div className="space-y-2">
-            {question.options?.map((option) => (
-              <label
-                key={option.value}
-                className="flex items-center gap-3 cursor-pointer"
-              >
-                <input
-                  type="radio"
-                  name={question.id}
-                  value={option.value}
-                  checked={value === option.value}
-                  onChange={(e) => onChange(e.target.value)}
-                  className="w-5 h-5 text-purple-600 border-gray-300 focus:ring-2 focus:ring-purple-500"
-                />
-                <span className="text-gray-700">{option.label}</span>
-              </label>
-            ))}
+          <div className="flex justify-center">
+            <input
+              type="number"
+              value={value || ""}
+              onChange={(e) =>
+                handleAnswerChange(
+                  currentQuestion.id,
+                  parseInt(e.target.value, 10) || null,
+                  false
+                )
+              }
+              placeholder={currentQuestion.placeholder || "0"}
+              min={currentQuestion.min}
+              max={currentQuestion.max}
+              className="w-32 px-4 py-3 text-center text-2xl font-bold bg-gray-100 text-gray-900 rounded-2xl border-2 border-gray-200 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            />
           </div>
         );
 
+      case "date":
+        return (
+          <div className="flex justify-center">
+            <input
+              type="date"
+              value={value || ""}
+              onChange={(e) =>
+                handleAnswerChange(currentQuestion.id, e.target.value, false)
+              }
+              className="px-5 py-3 text-lg font-medium bg-gray-100 text-gray-900 rounded-2xl border-2 border-gray-200 focus:outline-none focus:border-emerald-400"
+            />
+          </div>
+        );
+
+      case "text":
       default:
-        return <p className="text-gray-500">Unknown question type</p>;
+        return (
+          <div className="flex justify-center">
+            <input
+              type="text"
+              value={value || ""}
+              onChange={(e) =>
+                handleAnswerChange(currentQuestion.id, e.target.value, false)
+              }
+              placeholder={currentQuestion.placeholder || "Type here..."}
+              className="w-full px-5 py-3 text-lg text-center bg-gray-100 text-gray-900 placeholder-gray-400 rounded-2xl border-2 border-gray-200 focus:outline-none focus:border-emerald-400"
+            />
+          </div>
+        );
     }
   };
 
+  if (!isOpen) return null;
+
+  // Get visible question indices for image carousel (show 2 on each side)
+  const visibleIndices = [];
+  for (let i = currentQuestionIndex - 2; i <= currentQuestionIndex + 2; i++) {
+    if (i >= 0 && i < totalQuestions) {
+      visibleIndices.push(i);
+    }
+  }
+
+  const isLast = currentQuestionIndex === totalQuestions - 1;
+
   return (
-    <div>
-      <div className="mb-2">
-        <label className="block text-sm font-semibold text-gray-800 mb-1">
-          {question.question}
-        </label>
-        {question.helpText && (
-          <p className="text-xs text-gray-500 italic">{question.helpText}</p>
-        )}
+    <div className="fixed inset-0 z-50 bg-emerald-500 overflow-hidden">
+      {/* Top Half - Header + Progress + Image Carousel (50% height) */}
+      <div className="h-[50vh] flex flex-col">
+        {/* Header */}
+        <div className="flex-shrink-0 flex items-center justify-between px-4 sm:px-6 pt-8 sm:pt-10 pb-2 sm:pb-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 bg-white rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg">
+              <span className="text-lg sm:text-xl">🌙</span>
+            </div>
+            <span className="text-white font-semibold text-base sm:text-lg">
+              Moonbliss
+            </span>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 sm:w-10 sm:h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
+          >
+            <IonIcon
+              icon={closeOutline}
+              className="text-white text-xl sm:text-2xl"
+            />
+          </button>
+        </div>
+
+        {/* Progress dots */}
+        <div className="flex-shrink-0 flex justify-center gap-1 sm:gap-1.5 px-4 sm:px-6 py-1.5 sm:py-2">
+          {allQuestions.map((_, idx) => (
+            <div
+              key={idx}
+              className={`h-1.5 sm:h-2 rounded-full transition-all duration-300 ${
+                idx === currentQuestionIndex
+                  ? "w-6 sm:w-8 bg-white"
+                  : idx < currentQuestionIndex
+                  ? "w-1.5 sm:w-2 bg-white/80"
+                  : "w-1.5 sm:w-2 bg-white/40"
+              }`}
+            />
+          ))}
+        </div>
+
+        {/* Image Carousel Area - Takes remaining space in top 50% */}
+        <div
+          ref={containerRef}
+          className="flex-1 relative flex items-center justify-center overflow-hidden  "
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
+          style={{ cursor: isDragging ? "grabbing" : "grab" }}
+        >
+          {/* Floating images - centered in available space */}
+          {visibleIndices.map((index) => (
+            <FloatingImage
+              key={allQuestions[index].id}
+              question={allQuestions[index]}
+              position={index - currentQuestionIndex}
+              dragOffset={isDragging ? dragOffset : 0}
+              containerWidth={containerWidth}
+            />
+          ))}
+        </div>
       </div>
 
-      {renderField()}
+      {/* Bottom Half - White Question Card (50% height) */}
+      <div className="h-[50vh] bg-white rounded-t-[2.5rem] shadow-2xl overflow-y-auto">
+        <div className="px-5 sm:px-8 md:px-12 pt-5 sm:pt-6 pb-4 max-w-lg mx-auto">
+          {/* Question number and progress */}
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
+            <span className="text-xl sm:text-2xl font-bold text-gray-900">
+              Q{currentQuestionIndex + 1}
+            </span>
+            <span className="px-3 py-1 bg-gray-100 rounded-full text-xs sm:text-sm font-medium text-gray-500">
+              {currentQuestionIndex + 1} of {totalQuestions}
+            </span>
+          </div>
 
-      {error && (
-        <p className="text-sm text-red-600 mt-2 flex items-center gap-1">
-          <span>⚠️</span>
-          {error}
-        </p>
-      )}
+          {/* Question text */}
+          <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 leading-snug mb-1 sm:mb-1.5">
+            {currentQuestion?.question}
+          </h2>
+
+          {/* Help text */}
+          {currentQuestion?.helpText && (
+            <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4 leading-relaxed">
+              {currentQuestion.helpText}
+            </p>
+          )}
+
+          {/* Error message */}
+          {errors[currentQuestion?.id] && (
+            <p className="text-xs sm:text-sm text-red-500 mb-3 text-center bg-red-50 rounded-xl py-2 font-medium">
+              {errors[currentQuestion?.id]}
+            </p>
+          )}
+
+          {/* Input area */}
+          <div className="mb-3 sm:mb-4">{renderInput()}</div>
+
+          {/* Action button */}
+          <button
+            onClick={isLast ? handleSubmit : handleNext}
+            disabled={isSubmitting}
+            className="w-full py-3 sm:py-3.5 bg-gray-900 text-white text-sm sm:text-base font-semibold rounded-2xl transition-all duration-200 hover:bg-gray-800 active:scale-[0.98] disabled:opacity-50 shadow-lg"
+          >
+            {isSubmitting ? "Saving..." : isLast ? "Complete" : "Continue"}
+          </button>
+        </div>
+
+        {/* Safe area padding for iOS */}
+        <div className="h-4" />
+      </div>
     </div>
   );
-});
-
-QuestionField.displayName = "QuestionField";
+};
 
 export default ComprehensiveQuestionnaireModal;

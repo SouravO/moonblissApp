@@ -1,0 +1,54 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Calendar blob character -->
+  <defs>
+    <linearGradient id="calGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF6B6B"/>
+      <stop offset="100%" style="stop-color:#EE5A5A"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Calendar body -->
+  <rect x="30" y="50" width="140" height="130" rx="15" fill="white" stroke="#E0E0E0" stroke-width="2"/>
+  
+  <!-- Calendar header -->
+  <rect x="30" y="50" width="140" height="40" rx="15" fill="url(#calGrad)"/>
+  <rect x="30" y="75" width="140" height="15" fill="url(#calGrad)"/>
+  
+  <!-- Calendar rings -->
+  <rect x="55" y="40" width="10" height="25" rx="3" fill="#666"/>
+  <rect x="95" y="40" width="10" height="25" rx="3" fill="#666"/>
+  <rect x="135" y="40" width="10" height="25" rx="3" fill="#666"/>
+  
+  <!-- Day grid -->
+  <g fill="#333" font-family="Arial" font-size="12" text-anchor="middle">
+    <text x="50" y="115">1</text>
+    <text x="75" y="115">2</text>
+    <text x="100" y="115">3</text>
+    <text x="125" y="115">4</text>
+    <text x="150" y="115">5</text>
+    
+    <text x="50" y="140">6</text>
+    <text x="75" y="140">7</text>
+    <text x="100" y="140">8</text>
+    <text x="125" y="140">9</text>
+    <text x="150" y="140">10</text>
+    
+    <text x="50" y="165">11</text>
+    <text x="75" y="165">12</text>
+    <text x="100" y="165">13</text>
+    <text x="125" y="165">14</text>
+    <text x="150" y="165">15</text>
+  </g>
+  
+  <!-- Highlighted cycle days -->
+  <circle cx="100" cy="110" r="12" fill="#FFE0E0"/>
+  <circle cx="125" cy="110" r="12" fill="#FFB6C1"/>
+  <circle cx="150" cy="110" r="12" fill="#FFB6C1"/>
+  <circle cx="50" cy="135" r="12" fill="#FFB6C1"/>
+  <circle cx="75" cy="135" r="12" fill="#FFE0E0"/>
+  
+  <!-- Happy face -->
+  <circle cx="70" cy="65" r="4" fill="white"/>
+  <circle cx="130" cy="65" r="4" fill="white"/>
+  <path d="M85,72 Q100,82 115,72" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
+</svg>
