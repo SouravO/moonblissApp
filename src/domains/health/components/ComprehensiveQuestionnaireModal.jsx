@@ -13,7 +13,7 @@ import { storageService } from "@/infrastructure/storage/storageService.js";
 /**
  * Floating Image Component - Individual image in the carousel
  * Images float above the white card and swipe independently
- * Uses percentage-based positioning for responsiveness
+ * Uses percentage-based positioning for responsivenessbb
  */
 const FloatingImage = React.memo(
   ({ question, position, dragOffset, containerWidth }) => {
@@ -101,6 +101,7 @@ const ComprehensiveQuestionnaireModal = ({ isOpen, onClose, onComplete }) => {
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [containerWidth, setContainerWidth] = useState(360);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   // Touch handling refs
   const touchStartX = useRef(0);
@@ -223,7 +224,11 @@ const ComprehensiveQuestionnaireModal = ({ isOpen, onClose, onComplete }) => {
         currentQuestionIndex < totalQuestions - 1
       ) {
         setTimeout(() => {
-          setCurrentQuestionIndex((prev) => prev + 1);
+          setIsAnimating(true);
+          setTimeout(() => {
+            setCurrentQuestionIndex((prev) => prev + 1);
+            setIsAnimating(false);
+          }, 300);
         }, 400);
       }
     },
@@ -245,7 +250,11 @@ const ComprehensiveQuestionnaireModal = ({ isOpen, onClose, onComplete }) => {
     }
 
     if (currentQuestionIndex < totalQuestions - 1) {
-      setCurrentQuestionIndex((prev) => prev + 1);
+      setIsAnimating(true);
+      setTimeout(() => {
+        setCurrentQuestionIndex((prev) => prev + 1);
+        setIsAnimating(false);
+      }, 300);
     }
   }, [currentQuestionIndex, totalQuestions, currentQuestion, answers]);
 
@@ -484,7 +493,27 @@ const ComprehensiveQuestionnaireModal = ({ isOpen, onClose, onComplete }) => {
 
       {/* Bottom Half - White Question Card (50% height) */}
       <div className="h-[50vh] bg-white rounded-t-[2.5rem] shadow-2xl overflow-y-auto">
-        <div className="px-5 sm:px-8 md:px-12 pt-5 sm:pt-6 pb-4 max-w-lg mx-auto">
+        <style>{`
+          @keyframes slideDown {
+            from {
+              opacity: 0;
+              transform: translateY(-40px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          .question-card {
+            animation: slideDown 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          }
+        `}</style>
+        <div 
+          className={`question-card px-5 sm:px-8 md:px-12 pt-5 sm:pt-6 pb-4 max-w-lg mx-auto ${
+            isAnimating ? 'opacity-0' : ''
+          }`}
+          style={isAnimating ? { animation: 'none' } : {}}
+        >
           {/* Question number and progress */}
           <div className="flex items-center justify-between mb-2 sm:mb-3">
             <span className="text-xl sm:text-2xl font-bold text-gray-900">
