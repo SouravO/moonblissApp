@@ -6,6 +6,7 @@
 
 /**
  * Calculate next predicted period date
+ * Returns the NEXT UPCOMING period (not a past one)
  * @param {string} lastPeriodDate - ISO date string (YYYY-MM-DD)
  * @param {number} avgCycleLength - Average cycle length in days
  * @returns {string} ISO date string of predicted next period
@@ -16,8 +17,18 @@ export const calculateNextPeriodDate = (lastPeriodDate, avgCycleLength) => {
     const lastDate = new Date(lastPeriodDate);
     if (isNaN(lastDate.getTime())) return null;
 
-    const nextDate = new Date(lastDate);
-    nextDate.setDate(lastDate.getDate() + parseInt(avgCycleLength, 10));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const cycle = parseInt(avgCycleLength, 10);
+
+    // Start from last period and keep adding cycle length until we find a future date
+    let nextDate = new Date(lastDate);
+    nextDate.setHours(0, 0, 0, 0);
+
+    while (nextDate <= today) {
+        nextDate.setDate(nextDate.getDate() + cycle);
+    }
 
     return nextDate.toISOString().split('T')[0];
 };
@@ -26,7 +37,7 @@ export const calculateNextPeriodDate = (lastPeriodDate, avgCycleLength) => {
  * Calculate days remaining until next period
  * @param {string} lastPeriodDate - ISO date string
  * @param {number} avgCycleLength - Average cycle length in days
- * @returns {number} Days remaining (can be negative if period is overdue)
+ * @returns {number} Days remaining (always >= 0 since we find the next UPCOMING period)
  */
 export const calculateDaysUntilNextPeriod = (lastPeriodDate, avgCycleLength) => {
     const nextPeriodDate = calculateNextPeriodDate(lastPeriodDate, avgCycleLength);
@@ -56,26 +67,37 @@ export const calculateCyclePhase = (lastPeriodDate, avgCycleLength, avgPeriodLen
 
     const lastDate = new Date(lastPeriodDate);
     if (isNaN(lastDate.getTime())) return null;
+    lastDate.setHours(0, 0, 0, 0);
 
     const today = new Date();
-    const diffTime = today.getTime() - lastDate.getTime();
-    const dayInCycle = Math.floor(diffTime / (1000 * 60 * 60 * 24)) % parseInt(avgCycleLength, 10);
+    today.setHours(0, 0, 0, 0);
 
-    const cyclePercentage = (dayInCycle / parseInt(avgCycleLength, 10)) * 100;
+    const cycle = parseInt(avgCycleLength, 10);
+    const periodLength = parseInt(avgPeriodLength, 10);
+
+    // Calculate days since last period
+    const diffTime = today.getTime() - lastDate.getTime();
+    const daysSinceLastPeriod = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    // Day in current cycle (1-indexed, wraps around with modulo)
+    // Use ((x % n) + n) % n to handle negative numbers correctly
+    const dayInCycle = ((daysSinceLastPeriod % cycle) + cycle) % cycle + 1;
+
+    const cyclePercentage = (dayInCycle / cycle) * 100;
 
     // Determine phase based on day in cycle
     let phaseName;
     let phaseEmoji;
 
-    if (dayInCycle < avgPeriodLength) {
+    if (dayInCycle <= periodLength) {
         phaseName = 'Menstrual';
         phaseEmoji = '🩸';
-    } else if (dayInCycle < avgPeriodLength + 8) {
+    } else if (dayInCycle <= periodLength + 6) {
         phaseName = 'Follicular';
         phaseEmoji = '🌸';
-    } else if (dayInCycle < avgPeriodLength + 14) {
+    } else if (dayInCycle >= cycle - 16 && dayInCycle <= cycle - 11) {
         phaseName = 'Ovulation';
-        phaseEmoji = '💥';
+        phaseEmoji = '✨';
     } else {
         phaseName = 'Luteal';
         phaseEmoji = '🌙';
@@ -153,18 +175,21 @@ export const getPeriodPredictionWindow = (lastPeriodDate, avgCycleLength, variab
 
 /**
  * Determine if period is overdue
+ * Period is NOT overdue with new logic since we always show next upcoming period
  * @param {string} lastPeriodDate - ISO date string
  * @param {number} avgCycleLength - Average cycle length
- * @returns {boolean}
+ * @returns {boolean} Always false now - we show next upcoming period
  */
 export const isPeriodOverdue = (lastPeriodDate, avgCycleLength) => {
-    const daysUntil = calculateDaysUntilNextPeriod(lastPeriodDate, avgCycleLength);
-    return daysUntil !== null && daysUntil < 0;
+    // With the new logic, we always find the next upcoming period
+    // So period is never "overdue" - we just show the next one
+    return false;
 };
 
 /**
  * Get fertility window (approximate ovulation window)
- * Typically 5 days before ovulation + ovulation day
+ * Ovulation is approximately 14 days BEFORE the next period
+ * Fertile window is 5 days before to 1 day after ovulation
  * @param {string} lastPeriodDate - ISO date string
  * @param {number} avgCycleLength - Average cycle length
  * @returns {object} { startDate, ovulationDate, endDate }
@@ -172,11 +197,15 @@ export const isPeriodOverdue = (lastPeriodDate, avgCycleLength) => {
 export const getFertilityWindow = (lastPeriodDate, avgCycleLength) => {
     if (!lastPeriodDate || !avgCycleLength) return null;
 
-    const lastDate = new Date(lastPeriodDate);
-    const ovulationDay = Math.floor(parseInt(avgCycleLength, 10) / 2);
+    const cycle = parseInt(avgCycleLength, 10);
+    const nextPeriodDateStr = calculateNextPeriodDate(lastPeriodDate, avgCycleLength);
+    if (!nextPeriodDateStr) return null;
 
-    const ovulationDate = new Date(lastDate);
-    ovulationDate.setDate(lastDate.getDate() + ovulationDay);
+    const nextPeriodDate = new Date(nextPeriodDateStr);
+
+    // Ovulation is 14 days before next period
+    const ovulationDate = new Date(nextPeriodDate);
+    ovulationDate.setDate(nextPeriodDate.getDate() - 14);
 
     const startDate = new Date(ovulationDate);
     startDate.setDate(ovulationDate.getDate() - 5);

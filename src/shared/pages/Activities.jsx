@@ -13,11 +13,15 @@ import {
 import PageLayout from "../layout/PageLayout";
 import QuizModal from "../../domains/quiz/components/QuizModal";
 import StepTrackerModal from "../../domains/tracker/components/StepTrackerModal";
+import MoodTracker from "../../domains/moodTracker/MoodTracker";
+import JokeModal from "../../domains/Joke/JokeModal";
 
 const Activities = () => {
   const history = useHistory();
   const [showQuiz, setShowQuiz] = useState(false);
   const [showTracker, setShowTracker] = useState(false);
+  const [showMoodTracker, setShowMoodTracker] = useState(false);
+  const [showJoke, setShowJoke] = useState(false);
   const [stepData, setStepData] = useState({
     steps: 0,
     calories: 0,
@@ -209,6 +213,26 @@ const Activities = () => {
               </div>
               <span className="text-white font-semibold text-sm">Track</span>
             </div>
+            {/* mood selector */}
+            <div
+              className="bg-gradient-to-br from-purple-400 to-indigo-500 rounded-2xl p-4 shadow-lg flex flex-col items-center justify-center aspect-square cursor-pointer active:scale-95 transition-transform"
+              onClick={() => setShowMoodTracker(true)}
+            >
+              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-2">
+                <span className="text-2xl">😊</span>
+              </div>
+              <span className="text-white font-semibold text-sm">Mood</span>
+            </div>
+            {/* Joke  */}
+            <div
+              className="bg-gradient-to-br from-pink-400 to-red-500 rounded-2xl p-4 shadow-lg flex flex-col items-center justify-center aspect-square cursor-pointer active:scale-95 transition-transform"
+              onClick={() => setShowJoke(true)}
+            >
+              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-2">
+                <span className="text-2xl">😂</span>
+              </div>
+              <span className="text-white font-semibold text-sm">Jokes</span>
+            </div>
           </div>
         </div>
       </div>
@@ -221,6 +245,13 @@ const Activities = () => {
         isOpen={showTracker}
         onClose={() => setShowTracker(false)}
       />
+      {/* Mood Tracker Component */}
+      <MoodTracker
+        isOpen={showMoodTracker}
+        onClose={() => setShowMoodTracker(false)}
+      />
+      {/* Joke Modal */}
+      <JokeModal isOpen={showJoke} onClose={() => setShowJoke(false)} />
     </PageLayout>
   );
 };

@@ -1,5 +1,6 @@
 import PageLayout from "@/shared/layout/PageLayout";
 import PeriodTracker from "@/domains/health/components/PeriodTracker";
+import NextPeriodCard from "@/domains/health/components/NextPeriodCard";
 import { getUserData } from "@/infrastructure/storage/onboarding";
 
 const HealthHome = () => {
@@ -9,7 +10,7 @@ const HealthHome = () => {
   const handleLogout = () => {
     localStorage.clear();
     window.location.reload();
-  }
+  };
   return (
     <PageLayout title="Health">
       <div className="flex flex-col h-full">
@@ -19,14 +20,22 @@ const HealthHome = () => {
             Welcome back, {userName}! 👋
           </h1>
           <p className="text-gray-600">Track your wellness journey</p>
-          <button className="bg-green-400 p-4"
-          onClick={handleLogout}>logout</button>
+          <button className="bg-green-400 p-4" onClick={handleLogout}>
+            logout
+          </button>
         </div>
 
         {/* Period Tracker Widget */}
         <div className="mb-6">
           <PeriodTracker />
         </div>
+
+        {/* Next Period Prediction Card */}
+        <NextPeriodCard
+          showPhase={true}
+          showFertility={true}
+          className="mx-0 mb-6"
+        />
 
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-2 gap-4 mb-6">

@@ -11,6 +11,7 @@ import { calculateCyclePhase } from "../utils/periodPredictor.js";
  * Prevents unnecessary re-renders of phase calculation and UI
  */
 const PeriodTrackerContent = React.memo(({ trackerState, insights }) => {
+  console.log({trackerState})
   if (!trackerState?.isReady) {
     return (
       <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100">

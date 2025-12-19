@@ -13,6 +13,7 @@ import Music from "@/shared/pages/Music";
 import Activities from "@/shared/pages/Activities";
 import BottomNav from "@/shared/layout/BottomNav";
 import Quiz from "../../shared/pages/Quiz";
+import Calendar from "../../domains/health/components/Calendar";
 
 const AppRouter = () => {
   const [ready, setReady] = useState(false);
@@ -44,8 +45,10 @@ const AppRouter = () => {
           <Route exact path="/music" component={Music} />
           {/* quiz */}
           {/* <Route exact path="/quiz" component={Quiz} /> */}
-          <Route exact path="/store" component={CommerceHome} />
+          <Route exact path="/shop" component={CommerceHome} />
+          <Route exact path="/calendar" component={Calendar} />
           <Route exact path="/profile" component={Profile} />
+
           <Route exact path="/">
             <Redirect to="/health" />
           </Route>

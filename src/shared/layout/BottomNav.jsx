@@ -12,6 +12,11 @@ import {
   personOutline,
   person,
   headset,
+  basket,
+  calendar,
+  calendarOutline,
+  headsetOutline,
+  basketOutline,
 } from "ionicons/icons";
 import { useLocation, useHistory } from "react-router-dom";
 
@@ -26,16 +31,16 @@ const BottomNav = () => {
     { path: "/health", icon: homeOutline, iconActive: home, label: "Home" },
     {
       path: "/activities",
-      icon: headset,
+      icon: headsetOutline,
       iconActive: headset,
       label: "Activities",
     },
-    { path: "/saved", icon: heartOutline, iconActive: heart, label: "Saved" },
+    { path: "/shop", icon: basketOutline, iconActive: basket, label: "Shop" },
     {
-      path: "/notifications",
-      icon: notificationsOutline,
-      iconActive: notifications,
-      label: "Alerts",
+      path: "/calendar",
+      icon: calendarOutline,
+      iconActive: calendar,
+      label: "Calendar",
     },
     {
       path: "/profile",
