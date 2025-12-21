@@ -3,10 +3,19 @@ import { IonIcon } from "@ionic/react";
 import { play, musicalNotes, leaf, flash, heart, moon } from "ionicons/icons";
 import PageLayout from "../layout/PageLayout";
 import MusicPlayer from "../../domains/music/Components/MusicPlayer";
+import { useBackHandler } from "@/infrastructure/context/BackButtonContext";
 
 const Music = () => {
   const [showPlayer, setShowPlayer] = useState(false);
   const [currentTrack, setCurrentTrack] = useState(null);
+
+  // Handle back button for music player modal
+  useBackHandler(() => {
+    if (showPlayer) {
+      setShowPlayer(false);
+      return;
+    }
+  });
 
   // Playlist with categories
   const playlist = [
@@ -106,8 +115,8 @@ const Music = () => {
   };
 
   return (
-    <PageLayout title="Music">
-      <div className="pb-20">
+    <PageLayout >
+      <div>
         {/* Header */}
         <div className="px-4 pt-2 pb-4">
           <h1 className="text-2xl font-bold text-gray-900">

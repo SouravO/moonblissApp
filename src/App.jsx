@@ -1,5 +1,12 @@
 import AppRouter from "@/app/router";
+import { BackButtonProvider } from "@/infrastructure/context/BackButtonContext";
 
-const App = () => <AppRouter />;
+const App = () => {
+  return (
+    <BackButtonProvider>
+      <AppRouter />
+    </BackButtonProvider>
+  );
+};
 
 export default App;

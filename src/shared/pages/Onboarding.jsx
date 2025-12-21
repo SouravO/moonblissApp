@@ -5,7 +5,7 @@ import { useState, useCallback } from "react";
 import { useQuestionnaireFlow } from "@/domains/health/hooks/useQuestionnaireFlow.js";
 import { storageService } from "@/infrastructure/storage/storageService.js";
 import ComprehensiveQuestionnaireModal from "@/domains/health/components/ComprehensiveQuestionnaireModal.jsx";
-import Silk from "../../domains/health/components/Silk.jsx";
+// Silk component removed - using CSS gradient instead for better performance
 
 const Onboarding = () => {
   const [email, setEmail] = useState("");
@@ -73,20 +73,16 @@ const Onboarding = () => {
         >
           {step === "login" ? (
             <div className="relative min-h-screen w-full overflow-hidden">
-              {/* Silk background layer (FIXED: removed <style> block that broke Babel) */}
-              <div className="absolute inset-0 z-0 opacity-55 scale-[1.06] saturate-110 blur-[0.2px]">
-                <div className="absolute inset-0 overflow-hidden">
-                  <div className="w-full h-full">
-                    <Silk
-                      speed={5}
-                      scale={1}
-                      color="#7B7481"
-                      noiseIntensity={1.5}
-                      rotation={0}
-                    />
-                  </div>
-                </div>
-              </div>
+              {/* Animated gradient background - lightweight CSS replacement for Silk */}
+              <div className="absolute inset-0 z-0 bg-gradient-to-br from-purple-600 via-pink-500 to-purple-700 opacity-40 animate-pulse" />
+              
+              {/* Soft noise overlay */}
+              <div className="absolute inset-0 z-[0.5] mix-blend-overlay opacity-30"
+                style={{
+                  backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 1px, transparent 1px)',
+                  backgroundSize: '50px 50px'
+                }}
+              />
 
               {/* Vignette overlay */}
               <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(70%_60%_at_50%_35%,rgba(255,255,255,0.10),rgba(0,0,0,0.30))]" />

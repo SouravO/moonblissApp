@@ -1,188 +1,189 @@
-import React, { useMemo, useCallback } from "react";
-import { usePeriodTracking } from "../hooks/usePeriodTracking.js";
-import {
-  selectPeriodTrackerState,
-  selectHealthInsights,
-} from "../utils/selectors.js";
-import { calculateCyclePhase } from "../utils/periodPredictor.js";
+import React from "react";
 
-/**
- * Memoized Period Tracker Content Component
- * Prevents unnecessary re-renders of phase calculation and UI
- */
-const PeriodTrackerContent = React.memo(({ trackerState, insights }) => {
-  console.log({trackerState})
-  if (!trackerState?.isReady) {
-    return (
-      <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100">
-        <div className="text-center space-y-2">
-          <div className="text-5xl">📅</div>
-          <p className="text-gray-600">No period data recorded yet</p>
-        </div>
-      </div>
-    );
+/* ======================================================
+   PERIOD PREDICTION ENGINE (PURE FUNCTIONS)
+   ====================================================== */
+
+export const calculateNextPeriodDate = (lastPeriodDate, avgCycleLength) => {
+  if (!lastPeriodDate || !avgCycleLength) return null;
+
+  const lastDate = new Date(lastPeriodDate);
+  if (isNaN(lastDate.getTime())) return null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const cycle = parseInt(avgCycleLength, 10);
+
+  let nextDate = new Date(lastDate);
+  nextDate.setHours(0, 0, 0, 0);
+
+  while (nextDate <= today) {
+    nextDate.setDate(nextDate.getDate() + cycle);
   }
 
-  const getPhaseColor = useCallback((phase) => {
-    const colors = {
-      Menstrual: "text-red-600 bg-red-50 border-red-200",
-      Follicular: "text-green-600 bg-green-50 border-green-200",
-      Ovulation: "text-orange-600 bg-orange-50 border-orange-200",
-      Luteal: "text-blue-600 bg-blue-50 border-blue-200",
-    };
-    return (
-      colors[phase?.name] || "text-purple-600 bg-purple-50 border-purple-200"
-    );
-  }, []);
+  return nextDate.toISOString().split("T")[0];
+};
 
-  const statusColor = trackerState.isOverdue
-    ? "text-red-600"
-    : "text-purple-600";
-  const countdownText =
-    trackerState.daysUntilNextPeriod >= 0
-      ? `${trackerState.daysUntilNextPeriod} days`
-      : `${Math.abs(trackerState.daysUntilNextPeriod)} days overdue`;
+export const calculateDaysUntilNextPeriod = (lastPeriodDate, avgCycleLength) => {
+  const nextDateStr = calculateNextPeriodDate(lastPeriodDate, avgCycleLength);
+  if (!nextDateStr) return null;
 
-  return (
-    <div className="space-y-4">
-      {/* Main Countdown Card */}
-      <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100 shadow-sm">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <p className="text-sm text-gray-600 mb-1">Days Until Next Period</p>
-            <p className={`text-4xl font-bold ${statusColor}`}>
-              {countdownText}
-            </p>
-          </div>
-          <span className="text-4xl">{trackerState.currentPhase?.emoji}</span>
-        </div>
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-        <div className="space-y-3">
-          {/* Progress Bar */}
-          <div>
-            <div className="flex justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">
-                Cycle Progress
-              </span>
-              <span className="text-sm text-gray-600">
-                {trackerState.currentPhase?.percentage}%
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-              <div
-                className="bg-gradient-to-r from-purple-500 to-pink-500 h-full transition-all duration-300"
-                style={{ width: `${trackerState.currentPhase?.percentage}%` }}
-              />
-            </div>
-          </div>
+  const nextDate = new Date(nextDateStr);
+  nextDate.setHours(0, 0, 0, 0);
 
-          {/* Phase Info */}
-          <div className="flex items-center justify-between pt-2">
-            <div>
-              <p className="text-xs text-gray-600">Current Phase</p>
-              <p
-                className={`text-sm font-semibold px-3 py-1 rounded-full border ${getPhaseColor(
-                  trackerState.currentPhase
-                )}`}
-              >
-                {trackerState.currentPhase?.name} - Day{" "}
-                {trackerState.currentPhase?.dayInCycle}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-gray-600">Next Period</p>
-              <p className="text-sm font-semibold text-gray-800">
-                {trackerState.nextPeriodDate}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Prediction Window Info */}
-      {trackerState.predictionWindow && (
-        <div className="bg-white rounded-lg p-4 border border-gray-200">
-          <p className="text-xs text-gray-600 mb-2">Period Prediction Window</p>
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <div>
-              <p className="text-xs text-gray-500">Earliest</p>
-              <p className="text-sm font-semibold text-gray-700">
-                {trackerState.predictionWindow.earlyDate}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Expected</p>
-              <p className="text-sm font-semibold text-purple-600">
-                {trackerState.predictionWindow.expectedDate}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Latest</p>
-              <p className="text-sm font-semibold text-gray-700">
-                {trackerState.predictionWindow.lateDate}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Top Insight */}
-      {insights && insights.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <span className="text-2xl">{insights[0].emoji}</span>
-            <div>
-              <p className="font-semibold text-gray-800 text-sm">
-                {insights[0].title}
-              </p>
-              <p className="text-xs text-gray-600 mt-1">
-                {insights[0].description}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-});
-
-PeriodTrackerContent.displayName = "PeriodTrackerContent";
-
-/**
- * Main Period Tracker Hook Component
- * Uses memoized selectors and optimized re-renders
- */
-const PeriodTracker = () => {
-  // usePeriodTracking returns { menstrualData, loading, error, hasPeriodData }
-  const { menstrualData, loading, hasPeriodData } = usePeriodTracking();
-  const userProfile = { name: "User" };
-
-  // Memoize selector calculations to prevent unnecessary recalculation
-  const trackerState = useMemo(
-    () => selectPeriodTrackerState(menstrualData),
-    [menstrualData]
-  );
-
-  const insights = useMemo(
-    () => selectHealthInsights(menstrualData, userProfile, null),
-    [menstrualData, userProfile]
-  );
-
-  // Show loading state
-  if (loading) {
-    return (
-      <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100">
-        <div className="text-center space-y-2">
-          <div className="text-5xl animate-pulse">🌸</div>
-          <p className="text-gray-600">Loading your cycle data...</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <PeriodTrackerContent trackerState={trackerState} insights={insights} />
+  return Math.ceil(
+    (nextDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
   );
 };
 
-export default React.memo(PeriodTracker);
+export const calculateCyclePhase = (
+  lastPeriodDate,
+  avgCycleLength,
+  avgPeriodLength = 5
+) => {
+  if (!lastPeriodDate || !avgCycleLength) return null;
+
+  const lastDate = new Date(lastPeriodDate);
+  lastDate.setHours(0, 0, 0, 0);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const cycle = parseInt(avgCycleLength, 10);
+  const periodLength = parseInt(avgPeriodLength, 10);
+
+  const daysSinceLast =
+    (today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
+
+  const dayInCycle =
+    ((Math.floor(daysSinceLast) % cycle) + cycle) % cycle + 1;
+
+  const percentage = Math.round((dayInCycle / cycle) * 100);
+
+  let name, emoji;
+
+  if (dayInCycle <= periodLength) {
+    name = "Menstrual";
+    emoji = "🩸";
+  } else if (dayInCycle <= periodLength + 6) {
+    name = "Follicular";
+    emoji = "🌸";
+  } else if (dayInCycle >= cycle - 16 && dayInCycle <= cycle - 11) {
+    name = "Ovulation";
+    emoji = "✨";
+  } else {
+    name = "Luteal";
+    emoji = "🌙";
+  }
+
+  return { name, emoji, dayInCycle, percentage };
+};
+
+export const getPeriodPredictionWindow = (
+  lastPeriodDate,
+  avgCycleLength,
+  variability = 3
+) => {
+  const expectedDate = calculateNextPeriodDate(
+    lastPeriodDate,
+    avgCycleLength
+  );
+  if (!expectedDate) return null;
+
+  const expected = new Date(expectedDate);
+
+  const early = new Date(expected);
+  early.setDate(expected.getDate() - variability);
+
+  const late = new Date(expected);
+  late.setDate(expected.getDate() + variability);
+
+  return {
+    earlyDate: early.toISOString().split("T")[0],
+    expectedDate,
+    lateDate: late.toISOString().split("T")[0],
+  };
+};
+
+/* ======================================================
+   DASHBOARD UI (SOLID COLORS + NEW LAYOUT)
+   ====================================================== */
+
+export default function PeriodDashboard() {
+  const lastPeriodDate = "2025-12-06";
+  const avgCycleLength = 28;
+  const avgPeriodLength = 5;
+
+  const nextPeriodDate = calculateNextPeriodDate(
+    lastPeriodDate,
+    avgCycleLength
+  );
+  const daysLeft = calculateDaysUntilNextPeriod(
+    lastPeriodDate,
+    avgCycleLength
+  );
+  const predictionWindow = getPeriodPredictionWindow(
+    lastPeriodDate,
+    avgCycleLength
+  );
+  const cyclePhase = calculateCyclePhase(
+    lastPeriodDate,
+    avgCycleLength,
+    avgPeriodLength
+  );
+
+  return (
+    <div className="w-full max-w-4xl mx-auto px-4 py-6">
+
+      {/* NEW LAYOUT */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+        {/* BIG PRIMARY CARD — PURPLE BG + YELLOW TEXT */}
+        <div className="md:col-span-2 rounded-3xl p-6 bg-purple-700 shadow-xl text-yellow-300 flex flex-col justify-center">
+          <p className="text-sm opacity-90">Next Period In</p>
+          <h1 className="text-5xl font-extrabold mt-2 text-yellow-200">
+            {daysLeft}
+            <span className="text-2xl font-semibold ml-2">days</span>
+          </h1>
+          <p className="mt-3 text-base text-yellow-100">
+            Expected on{" "}
+            <span className="font-semibold text-yellow-300">
+              {nextPeriodDate}
+            </span>
+          </p>
+        </div>
+
+        {/* RIGHT STACK */}
+        <div className="flex flex-col gap-4">
+
+          {/* ROYAL BLUE CARD */}
+          <div className="rounded-2xl p-4 bg-blue-900 shadow-lg text-white">
+            <p className="text-xs opacity-80">Prediction Window</p>
+            <p className="mt-2 text-sm">
+              Early: <strong>{predictionWindow.earlyDate}</strong>
+            </p>
+            <p className="text-sm">
+              Late: <strong>{predictionWindow.lateDate}</strong>
+            </p>
+          </div>
+
+          {/* YELLOW CARD */}
+          <div className="rounded-2xl p-4 bg-yellow-300 shadow-lg text-purple-900">
+            <p className="text-xs opacity-80">Current Phase</p>
+            <h2 className="text-xl font-bold mt-1">
+              {cyclePhase.emoji} {cyclePhase.name}
+            </h2>
+            <p className="text-xs mt-1 text-purple-700">
+              Day {cyclePhase.dayInCycle} • {cyclePhase.percentage}%
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}

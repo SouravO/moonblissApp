@@ -3,20 +3,14 @@ import { IonIcon } from "@ionic/react";
 import {
   homeOutline,
   home,
-  searchOutline,
-  search,
-  heartOutline,
-  heart,
-  notificationsOutline,
-  notifications,
-  personOutline,
-  person,
   headset,
+  headsetOutline,
   basket,
+  basketOutline,
   calendar,
   calendarOutline,
-  headsetOutline,
-  basketOutline,
+  personOutline,
+  person,
 } from "ionicons/icons";
 import { useLocation, useHistory } from "react-router-dom";
 
@@ -24,8 +18,6 @@ const BottomNav = () => {
   const location = useLocation();
   const history = useHistory();
   const [activeIndex, setActiveIndex] = useState(0);
-  const [animationClass, setAnimationClass] = useState("");
-  const indicatorRef = useRef(null);
 
   const tabs = [
     { path: "/health", icon: homeOutline, iconActive: home, label: "Home" },
@@ -62,18 +54,6 @@ const BottomNav = () => {
 
   const handleTabClick = (index, path) => {
     if (index !== activeIndex) {
-      // Calculate animation magnitude based on distance
-      const magnitude = Math.min(Math.abs(index - activeIndex), 4);
-      const direction = index > activeIndex ? "right" : "left";
-
-      // Apply stretch animation
-      setAnimationClass(`stretch-${magnitude} stretch-${direction}`);
-
-      // Remove animation class after animation completes
-      setTimeout(() => {
-        setAnimationClass("");
-      }, 250);
-
       setActiveIndex(index);
       history.push(path);
     }
@@ -81,116 +61,124 @@ const BottomNav = () => {
 
   return (
     <>
-      {/* CSS for animations */}
+      {/* Premium Floating Nav Animations */}
       <style>{`
-        @keyframes stretchRight1 {
-          0% { transform: scale(1, 1); }
-          50% { transform: scale(1.8, 0.7); border-radius: 1rem; }
-          100% { transform: scale(1, 1); }
+        @keyframes floatingPulse {
+          0%, 100% { box-shadow: 0 8px 24px rgba(168, 85, 247, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
+          50% { box-shadow: 0 12px 32px rgba(168, 85, 247, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
         }
-        @keyframes stretchRight2 {
-          0% { transform: scale(1, 1); }
-          50% { transform: scale(2.4, 0.65); border-radius: 0.875rem; }
-          100% { transform: scale(1, 1); }
+        
+        @keyframes iconFloat {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-2px); }
         }
-        @keyframes stretchRight3 {
-          0% { transform: scale(1, 1); }
-          50% { transform: scale(3, 0.6); border-radius: 0.75rem; }
-          100% { transform: scale(1, 1); }
+        
+        .nav-container {
+          position: fixed;
+          bottom: 20px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 50;
         }
-        @keyframes stretchRight4 {
-          0% { transform: scale(1, 1); }
-          50% { transform: scale(3.5, 0.55); border-radius: 0.625rem; }
-          100% { transform: scale(1, 1); }
+        
+        .floating-nav {
+          display: flex;
+          gap: 8px;
+          padding: 12px 16px;
+          background: rgba(0, 0, 0, 0.7);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 20px;
+          box-shadow: 0 8px 24px rgba(168, 85, 247, 0.15), 
+                      0 0 1px rgba(255, 255, 255, 0.1) inset;
+          transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
-        @keyframes stretchLeft1 {
-          0% { transform: scale(1, 1); }
-          50% { transform: scale(1.8, 0.7); border-radius: 1rem; }
-          100% { transform: scale(1, 1); }
+        
+        .floating-nav:hover {
+          background: rgba(0, 0, 0, 0.75);
+          box-shadow: 0 12px 32px rgba(168, 85, 247, 0.25), 
+                      0 0 1px rgba(255, 255, 255, 0.15) inset;
         }
-        @keyframes stretchLeft2 {
-          0% { transform: scale(1, 1); }
-          50% { transform: scale(2.4, 0.65); border-radius: 0.875rem; }
-          100% { transform: scale(1, 1); }
+        
+        .nav-item {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+          color: rgba(255, 255, 255, 0.6);
         }
-        @keyframes stretchLeft3 {
-          0% { transform: scale(1, 1); }
-          50% { transform: scale(3, 0.6); border-radius: 0.75rem; }
-          100% { transform: scale(1, 1); }
+        
+        .nav-item:hover {
+          background: rgba(168, 85, 247, 0.1);
+          color: rgba(255, 255, 255, 0.8);
         }
-        @keyframes stretchLeft4 {
-          0% { transform: scale(1, 1); }
-          50% { transform: scale(3.5, 0.55); border-radius: 0.625rem; }
-          100% { transform: scale(1, 1); }
+        
+        .nav-item.active {
+          background: linear-gradient(135deg, rgba(168, 85, 247, 0.3) 0%, rgba(236, 72, 153, 0.2) 100%);
+          color: #a855f7;
+          box-shadow: 0 0 12px rgba(168, 85, 247, 0.4), 
+                      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(168, 85, 247, 0.3);
         }
-        .stretch-1.stretch-right { animation: stretchRight1 0.2s ease-out; transform-origin: left center; }
-        .stretch-2.stretch-right { animation: stretchRight2 0.22s ease-out; transform-origin: left center; }
-        .stretch-3.stretch-right { animation: stretchRight3 0.24s ease-out; transform-origin: left center; }
-        .stretch-4.stretch-right { animation: stretchRight4 0.26s ease-out; transform-origin: left center; }
-        .stretch-1.stretch-left { animation: stretchLeft1 0.2s ease-out; transform-origin: right center; }
-        .stretch-2.stretch-left { animation: stretchLeft2 0.22s ease-out; transform-origin: right center; }
-        .stretch-3.stretch-left { animation: stretchLeft3 0.24s ease-out; transform-origin: right center; }
-        .stretch-4.stretch-left { animation: stretchLeft4 0.26s ease-out; transform-origin: right center; }
+        
+        .nav-item.active::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: 12px;
+          padding: 2px;
+          background: linear-gradient(135deg, #a855f7, #ec4899);
+          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          mask-composite: exclude;
+          opacity: 0.3;
+          animation: floatingPulse 2s ease-in-out infinite;
+        }
+        
+        .nav-icon {
+          font-size: 24px;
+          transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+          z-index: 1;
+        }
+        
+        .nav-item.active .nav-icon {
+          animation: iconFloat 1.5s ease-in-out infinite;
+        }
+        
+        .nav-item:active {
+          transform: scale(0.92);
+        }
+        
+        .nav-item:active .nav-icon {
+          animation: none;
+        }
       `}</style>
 
-      <nav
-        className="fixed bottom-0 left-0 right-0 bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.08)] flex justify-center z-50"
-        style={{
-          height: "calc(56px + env(safe-area-inset-bottom, 0px))",
-          paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        }}
-      >
-        <ul className="flex relative w-full max-w-md">
-          {/* Active Indicator - Sliding pill */}
-          <div
-            ref={indicatorRef}
-            className="absolute top-0 h-full flex justify-center items-start pt-1 pointer-events-none transition-transform duration-300 ease-[cubic-bezier(0.645,0.045,0.355,1)]"
-            style={{
-              width: "20%",
-              transform: `translateX(${activeIndex * 100}%)`,
-            }}
-          >
-            <div
-              className={`w-10 h-10 bg-emerald-100 rounded-full border-4 border-white ${animationClass}`}
-            />
-          </div>
-
-          {/* Tab Items */}
+      <div className="nav-container">
+        <nav className="floating-nav">
           {tabs.map((tab, index) => {
             const isSelected = index === activeIndex;
             return (
-              <li
+              <button
                 key={tab.path}
                 onClick={() => handleTabClick(index, tab.path)}
-                className={`
-                  flex-1 flex flex-col items-center justify-center gap-0.5 cursor-pointer z-10
-                  transition-all duration-200
-                  ${
-                    isSelected
-                      ? "text-gray-900 font-medium"
-                      : "text-gray-400 font-light"
-                  }
-                `}
+                className={`nav-item ${isSelected ? "active" : ""}`}
+                title={tab.label}
               >
                 <IonIcon
                   icon={isSelected ? tab.iconActive : tab.icon}
-                  className={`
-                    text-2xl transition-all duration-300 ease-[cubic-bezier(0.645,0.045,0.355,1)]
-                    ${
-                      isSelected
-                        ? "-translate-y-1 text-emerald-600"
-                        : "text-gray-400"
-                    }
-                  `}
+                  className="nav-icon"
                 />
-                <span className="text-[0.65rem] tracking-wide">
-                  {tab.label}
-                </span>
-              </li>
+              </button>
             );
           })}
-        </ul>
-      </nav>
+        </nav>
+      </div>
     </>
   );
 };

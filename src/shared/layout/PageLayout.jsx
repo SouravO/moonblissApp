@@ -9,18 +9,12 @@ import {
 const PageLayout = ({ title, children }) => {
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar
-          className="flex justify-center"
-          style={{ paddingTop: "env(safe-area-inset-top, 20px)" }}
-        >
-          <IonTitle>{title}</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent
-        className="ion-padding"
         style={{
           "--padding-bottom": "calc(70px + env(safe-area-inset-bottom, 0px))",
+          "--padding-left": "0",
+          "--padding-right": "0",
+          "--padding-top": "0",
         }}
       >
         {children}

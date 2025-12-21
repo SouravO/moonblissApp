@@ -1,5 +1,11 @@
 {
   "appId": "com.example.app",
   "appName": "moonbliss",
-  "webDir": "dist"
+  "webDir": "dist",
+  "plugins": {
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#000000"
+    }
+  }
 }

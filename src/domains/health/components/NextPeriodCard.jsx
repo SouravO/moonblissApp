@@ -82,6 +82,31 @@ const NextPeriodCard = ({
 
   // Compact version for smaller displays
   if (compact) {
+    // Additional safety check for nextPeriod
+    if (!nextPeriod) {
+      return (
+        <IonCard className={`rounded-xl overflow-hidden shadow-sm ${className}`}>
+          <IonCardContent className="p-3 bg-gradient-to-r from-pink-50 to-rose-50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center">
+                  <IonIcon
+                    icon={waterOutline}
+                    className="text-pink-500 text-xl"
+                  />
+                </div>
+                <div>
+                  <IonText className="block text-sm font-semibold text-gray-800">
+                    Loading...
+                  </IonText>
+                </div>
+              </div>
+            </div>
+          </IonCardContent>
+        </IonCard>
+      );
+    }
+
     return (
       <IonCard className={`rounded-xl overflow-hidden shadow-sm ${className}`}>
         <IonCardContent className="p-3 bg-gradient-to-r from-pink-50 to-rose-50">
@@ -119,6 +144,22 @@ const NextPeriodCard = ({
   }
 
   // Full version
+  // Additional safety check for nextPeriod
+  if (!nextPeriod) {
+    return (
+      <IonCard className={`m-4 rounded-2xl overflow-hidden shadow-md ${className}`}>
+        <IonCardContent className="p-4">
+          <IonText className="block text-gray-700 font-medium mb-2">
+            Unable to load period data
+          </IonText>
+          <IonText className="block text-gray-500 text-sm">
+            Please try refreshing or contact support
+          </IonText>
+        </IonCardContent>
+      </IonCard>
+    );
+  }
+
   return (
     <IonCard
       className={`m-4 rounded-2xl overflow-hidden shadow-md ${className}`}

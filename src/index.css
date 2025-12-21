@@ -1,5 +1,47 @@
 @import "tailwindcss";
 
+/* Poppins Font Family Applied Globally */
+@layer base {
+  body {
+    @apply text-gray-100 leading-relaxed;
+    font-family: 'Poppins', system-ui, sans-serif;
+    letter-spacing: 0.3px;
+  }
+  
+  * {
+    font-family: 'Poppins', system-ui, sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight;
+    font-family: 'Poppins', system-ui, sans-serif;
+    letter-spacing: -0.5px;
+  }
+  
+  h1 {
+    @apply text-4xl;
+  }
+  
+  h2 {
+    @apply text-3xl;
+  }
+  
+  h3 {
+    @apply text-2xl;
+  }
+  
+  /* Premium text styles */
+  .font-display {
+    @apply font-bold tracking-tight;
+    font-family: 'Poppins', system-ui, sans-serif;
+  }
+  
+  .font-heading {
+    @apply font-semibold tracking-tight;
+    font-family: 'Poppins', system-ui, sans-serif;
+  }
+}
+
 /* Safe Area Support for notch devices */
 :root {
   --safe-area-top: env(safe-area-inset-top, 0px);

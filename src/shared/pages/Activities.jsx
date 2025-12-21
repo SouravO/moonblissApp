@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useHistory } from "react-router-dom";
 import { IonIcon } from "@ionic/react";
 import {
@@ -10,11 +10,21 @@ import {
   helpCircleOutline,
   analyticsOutline,
 } from "ionicons/icons";
+import { motion } from "framer-motion";
 import PageLayout from "../layout/PageLayout";
+import ColorBg from "@/components/ColorBg";
 import QuizModal from "../../domains/quiz/components/QuizModal";
 import StepTrackerModal from "../../domains/tracker/components/StepTrackerModal";
 import MoodTracker from "../../domains/moodTracker/MoodTracker";
 import JokeModal from "../../domains/Joke/JokeModal";
+import { Bell } from "lucide-react";
+import { useBackHandler } from "@/infrastructure/context/BackButtonContext";
+
+/* Animation presets */
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
 
 const Activities = () => {
   const history = useHistory();
@@ -22,6 +32,7 @@ const Activities = () => {
   const [showTracker, setShowTracker] = useState(false);
   const [showMoodTracker, setShowMoodTracker] = useState(false);
   const [showJoke, setShowJoke] = useState(false);
+
   const [stepData, setStepData] = useState({
     steps: 0,
     calories: 0,
@@ -29,228 +40,361 @@ const Activities = () => {
     duration: 0,
   });
 
-  // Load step data from localStorage
   useEffect(() => {
     const savedData = localStorage.getItem("stepTrackerData");
     if (savedData) {
       setStepData(JSON.parse(savedData));
     }
-  }, [showTracker]); // Refresh when tracker closes
+  }, [showTracker]);
 
-  const handleMusic = () => {
-    history.push("/music");
-  };
-
-  const handleQuiz = () => {
-    setShowQuiz(true);
-  };
-
-  const handleTrack = () => {
-    setShowTracker(true);
-  };
-
-  // Format duration
-  const formatDuration = (seconds) => {
+  const formatDuration = useCallback((seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
+  }, []);
 
-  // Calculate goal progress
   const dailyGoal = 6000;
-  const progress = Math.min((stepData.steps / dailyGoal) * 100, 100);
+  const progress = useMemo(() => Math.min((stepData.steps / dailyGoal) * 100, 100), [stepData.steps]);
+
+  // Handle back button for modals
+  useBackHandler(() => {
+    if (showQuiz) {
+      setShowQuiz(false);
+      return;
+    }
+    if (showTracker) {
+      setShowTracker(false);
+      return;
+    }
+    if (showMoodTracker) {
+      setShowMoodTracker(false);
+      return;
+    }
+    if (showJoke) {
+      setShowJoke(false);
+      return;
+    }
+  });
 
   return (
-    <PageLayout title={"Activities"}>
-      <div className="flex flex-col h-full pb-4">
-        {/* Greeting Card */}
-        <div className="bg-gradient-to-r from-purple-500 to-pink-500 mx-3 mt-2 p-4 rounded-2xl shadow-lg">
-          <h2 className="text-white font-bold text-xl">Hello, There! 👋</h2>
-          <p className="text-white/80 text-sm mt-1">
-            Track your daily wellness journey
-          </p>
-        </div>
+    <PageLayout>
+      <ColorBg />
 
-        {/* Today's Stats Section */}
-        <div className="mx-3 mt-4">
-          <h3 className="text-gray-700 font-semibold text-sm mb-3 px-1">
-            📊 Today's Progress
-          </h3>
+      <div className="relative bg-black text-gray-100">
+        {/* Header */}
+        <motion.header
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="px-5 pt-6 pb-4"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-white tracking-tight">
+                Activities
+              </h1>
+              <p className="text-sm text-gray-400 mt-1">Track your wellness journey</p>
+            </div>
+            <button className="w-12 h-12 rounded-full bg-neutral-800 flex items-center justify-center hover:bg-neutral-700 transition">
+              <Bell className="w-6 h-6 text-gray-300" />
+            </button>
+          </div>
+        </motion.header>
 
-          {/* Step Progress Card */}
-          <div
-            className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-4 shadow-lg mb-3 cursor-pointer active:scale-[0.98] transition-transform"
-            onClick={handleTrack}
+        <div className="px-5 space-y-6">
+          {/* Progress Overview - Simple Progress Bar */}
+          <motion.section
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="space-y-3"
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center">
-                  <IonIcon
-                    icon={footstepsOutline}
-                    className="text-white text-3xl"
-                  />
-                </div>
+            <div>
+              <p className="text-sm text-gray-400 mb-2">Today's Progress</p>
+              <p className="text-5xl font-bold text-white">
+                {Math.round(progress)}%
+              </p>
+            </div>
+            <div className="w-full h-4 bg-gray-500 rounded-full overflow-hidden border-2 border-black flex">
+              <div
+                className="h-full bg-white rounded-full transition-all duration-500"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </motion.section>
+
+          {/* Main Stats Card - Yellow */}
+          <motion.section
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: 0.2 }}
+            className="rounded-[50px] bg-[#ede339] p-6 border border-yellow-200/50 relative overflow-hidden cursor-pointer hover:border-yellow-300/70 transition-all"
+            onClick={() => setShowTracker(true)}
+          >
+            {/* Decorative emoji */}
+            <div className="absolute top-4 right-6 text-4xl opacity-80">👟</div>
+            
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-1 tracking-tight">
+                Steps Today
+              </h2>
+              <p className="text-sm text-gray-700 mb-4">
+                Keep moving towards your daily goal
+              </p>
+
+              {/* Stats Display */}
+              <div className="flex items-end gap-3 mt-4">
                 <div>
-                  <p className="text-white/80 text-xs">Steps Today</p>
-                  <p className="text-white font-bold text-2xl">
+                  <p className="text-5xl font-bold text-gray-900">
                     {stepData.steps.toLocaleString()}
                   </p>
-                  <p className="text-white/70 text-xs">
+                  <p className="text-xs text-gray-700 mt-1">
                     / {dailyGoal.toLocaleString()} goal
                   </p>
                 </div>
               </div>
-              {/* Circular Progress */}
-              <div className="relative w-16 h-16">
-                <svg className="w-full h-full -rotate-90">
-                  <circle
-                    cx="32"
-                    cy="32"
-                    r="28"
-                    fill="none"
-                    stroke="rgba(255,255,255,0.2)"
-                    strokeWidth="6"
-                  />
-                  <circle
-                    cx="32"
-                    cy="32"
-                    r="28"
-                    fill="none"
-                    stroke="white"
-                    strokeWidth="6"
-                    strokeLinecap="round"
-                    strokeDasharray={2 * Math.PI * 28}
-                    strokeDashoffset={2 * Math.PI * 28 * (1 - progress / 100)}
-                  />
-                </svg>
-                <span className="absolute inset-0 flex items-center justify-center text-white font-bold text-sm">
-                  {Math.round(progress)}%
-                </span>
-              </div>
             </div>
+          </motion.section>
+
+          {/* Two Column Grid */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Pink - Calories Card */}
+            <motion.section
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
+              transition={{ delay: 0.3 }}
+              className="rounded-[60px] bg-[#de699f] p-6 border border-pink-400/30 text-white cursor-pointer hover:border-pink-300/60 transition-all"
+            >
+              <div className="text-3xl mb-2">🔥</div>
+              <p className="text-xs text-white/80 mb-1 font-semibold">CALORIES BURNED</p>
+              <p className="text-4xl font-bold text-white">{stepData.calories}</p>
+              <p className="text-xs text-white/60 mt-2">kcal today</p>
+            </motion.section>
+
+            {/* Blue - Distance Card */}
+            <motion.section
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
+              transition={{ delay: 0.35 }}
+              className="rounded-[50px] bg-gradient-to-br from-blue-500 to-blue-600 p-6 border border-blue-400/30 text-white cursor-pointer hover:border-blue-300/60 transition-all"
+            >
+              <div className="text-3xl mb-2">📍</div>
+              <p className="text-xs text-white/80 mb-1 font-semibold">DISTANCE</p>
+              <p className="text-4xl font-bold text-white">{stepData.distance}</p>
+              <p className="text-xs text-white/60 mt-2">km covered</p>
+            </motion.section>
           </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-3 gap-2">
-            <div className="bg-orange-50 rounded-xl p-3 text-center">
-              <IonIcon
-                icon={flameOutline}
-                className="text-orange-500 text-xl mb-1"
-              />
-              <p className="text-lg font-bold text-gray-800">
-                {stepData.calories}
-              </p>
-              <p className="text-xs text-gray-500">Calories</p>
-            </div>
-            <div className="bg-blue-50 rounded-xl p-3 text-center">
-              <IonIcon
-                icon={trendingUpOutline}
-                className="text-blue-500 text-xl mb-1"
-              />
-              <p className="text-lg font-bold text-gray-800">
-                {stepData.distance}
-              </p>
-              <p className="text-xs text-gray-500">km</p>
-            </div>
-            <div className="bg-purple-50 rounded-xl p-3 text-center">
-              <IonIcon
-                icon={timeOutline}
-                className="text-purple-500 text-xl mb-1"
-              />
-              <p className="text-lg font-bold text-gray-800">
-                {formatDuration(stepData.duration)}
-              </p>
-              <p className="text-xs text-gray-500">Active</p>
-            </div>
+          {/* Duration and Progress Grid */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Purple - Duration Card */}
+            <motion.section
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
+              transition={{ delay: 0.4 }}
+              className="rounded-[50px] bg-gradient-to-br from-purple-600 to-purple-700 p-6 border border-purple-500/30 text-white cursor-pointer hover:border-purple-400/60 transition-all"
+            >
+              <div className="text-3xl mb-2">⏱️</div>
+              <p className="text-xs text-white/80 mb-1 font-semibold">ACTIVE TIME</p>
+              <p className="text-3xl font-bold text-white">{formatDuration(stepData.duration)}</p>
+              <p className="text-xs text-white/60 mt-2">minutes active</p>
+            </motion.section>
+
+            {/* Green - Goal Progress Card */}
+            <motion.section
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
+              transition={{ delay: 0.45 }}
+              className="rounded-[50px] bg-gradient-to-br from-green-500 to-green-600 p-6 border border-green-400/30 text-white cursor-pointer hover:border-green-400/60 transition-all"
+            >
+              <div className="text-3xl mb-2">🎯</div>
+              <p className="text-xs text-white/80 mb-1 font-semibold">GOAL PROGRESS</p>
+              <p className="text-3xl font-bold text-white">{Math.round(progress)}%</p>
+              <p className="text-xs text-white/60 mt-2">to daily target</p>
+            </motion.section>
           </div>
-        </div>
 
-        {/* Activity Cards Section */}
-        <div className="mx-3 mt-5">
-          <h3 className="text-gray-700 font-semibold text-sm mb-3 px-1">
-            🎯 Quick Activities
-          </h3>
+          {/* Activities Grid Section */}
+          <motion.section
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="space-y-4"
+          >
+            <h2 className="text-lg font-semibold text-white px-2">Quick Access</h2>
 
-          <div className="grid grid-cols-3 gap-3">
-            {/* Music Card */}
-            <div
-              className="bg-gradient-to-br from-rose-400 to-pink-500 rounded-2xl p-4 shadow-lg flex flex-col items-center justify-center aspect-square cursor-pointer active:scale-95 transition-transform"
-              onClick={handleMusic}
-            >
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-2">
-                <IonIcon
-                  icon={musicalNotesOutline}
-                  className="text-white text-2xl"
-                />
-              </div>
-              <span className="text-white font-semibold text-sm">Music</span>
+            {/* First Row - 2 Cards */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Music - Orange */}
+              <motion.div
+                variants={fadeUp}
+                initial="hidden"
+                animate="visible"
+                transition={{ delay: 0.55 }}
+                whileHover={{ y: -4 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => history.push("/music")}
+                className="rounded-[40px] bg-gradient-to-br from-orange-500 to-orange-600 p-6 border border-orange-400/30 cursor-pointer text-white"
+              >
+                <div className="text-4xl mb-3">🎵</div>
+                <h3 className="text-lg font-bold mb-1">Music</h3>
+                <p className="text-xs text-white/70">Relax & unwind</p>
+              </motion.div>
+
+              {/* Quiz - Teal */}
+              <motion.div
+                variants={fadeUp}
+                initial="hidden"
+                animate="visible"
+                transition={{ delay: 0.6 }}
+                whileHover={{ y: -4 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowQuiz(true)}
+                className="rounded-[40px] bg-gradient-to-br from-teal-500 to-teal-600 p-6 border border-teal-400/30 cursor-pointer text-white"
+              >
+                <div className="text-4xl mb-3">❓</div>
+                <h3 className="text-lg font-bold mb-1">Quiz</h3>
+                <p className="text-xs text-white/70">Test yourself</p>
+              </motion.div>
             </div>
 
-            {/* Quiz Card */}
-            <div
-              className="bg-gradient-to-br from-emerald-400 to-green-500 rounded-2xl p-4 shadow-lg flex flex-col items-center justify-center aspect-square cursor-pointer active:scale-95 transition-transform"
-              onClick={handleQuiz}
-            >
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-2">
-                <IonIcon
-                  icon={helpCircleOutline}
-                  className="text-white text-2xl"
-                />
-              </div>
-              <span className="text-white font-semibold text-sm">Quiz</span>
+            {/* Second Row - 2 Cards */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Tracker - Indigo */}
+              <motion.div
+                variants={fadeUp}
+                initial="hidden"
+                animate="visible"
+                transition={{ delay: 0.65 }}
+                whileHover={{ y: -4 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowTracker(true)}
+                className="rounded-[40px] bg-gradient-to-br from-indigo-600 to-indigo-700 p-6 border border-indigo-500/30 cursor-pointer text-white"
+              >
+                <div className="text-4xl mb-3">📊</div>
+                <h3 className="text-lg font-bold mb-1">Track</h3>
+                <p className="text-xs text-white/70">Log your steps</p>
+              </motion.div>
+
+              {/* Mood - Pink */}
+              <motion.div
+                variants={fadeUp}
+                initial="hidden"
+                animate="visible"
+                transition={{ delay: 0.7 }}
+                whileHover={{ y: -4 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowMoodTracker(true)}
+                className="rounded-[40px] bg-[#de699f] p-6 border border-pink-400/30 cursor-pointer text-white"
+              >
+                <div className="text-4xl mb-3">😊</div>
+                <h3 className="text-lg font-bold mb-1">Mood</h3>
+                <p className="text-xs text-white/70">Check yourself</p>
+              </motion.div>
             </div>
 
-            {/* Track Card */}
-            <div
-              className="bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl p-4 shadow-lg flex flex-col items-center justify-center aspect-square cursor-pointer active:scale-95 transition-transform"
-              onClick={handleTrack}
-            >
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-2">
-                <IonIcon
-                  icon={analyticsOutline}
-                  className="text-white text-2xl"
-                />
-              </div>
-              <span className="text-white font-semibold text-sm">Track</span>
-            </div>
-            {/* mood selector */}
-            <div
-              className="bg-gradient-to-br from-purple-400 to-indigo-500 rounded-2xl p-4 shadow-lg flex flex-col items-center justify-center aspect-square cursor-pointer active:scale-95 transition-transform"
-              onClick={() => setShowMoodTracker(true)}
-            >
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-2">
-                <span className="text-2xl">😊</span>
-              </div>
-              <span className="text-white font-semibold text-sm">Mood</span>
-            </div>
-            {/* Joke  */}
-            <div
-              className="bg-gradient-to-br from-pink-400 to-red-500 rounded-2xl p-4 shadow-lg flex flex-col items-center justify-center aspect-square cursor-pointer active:scale-95 transition-transform"
+            {/* Full Width - Jokes Card */}
+            <motion.div
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
+              transition={{ delay: 0.75 }}
+              whileHover={{ y: -4 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => setShowJoke(true)}
+              className="rounded-[40px] bg-gradient-to-r from-rose-500 via-pink-500 to-red-500 p-6 border border-rose-400/30 cursor-pointer text-white"
             >
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-2">
-                <span className="text-2xl">😂</span>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-3xl mb-2">😂</div>
+                  <h3 className="text-lg font-bold">Jokes</h3>
+                  <p className="text-xs text-white/70 mt-1">Laugh & feel good</p>
+                </div>
+                <div className="text-5xl opacity-70">🤣</div>
               </div>
-              <span className="text-white font-semibold text-sm">Jokes</span>
-            </div>
-          </div>
+            </motion.div>
+          </motion.section>
+
+          {/* Wellness Tips Section */}
+          <motion.section
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: 0.8 }}
+            className="space-y-3"
+          >
+            <h2 className="text-lg font-semibold text-white px-2">Wellness Tips</h2>
+
+            {/* Tip 1 - Yellow Card */}
+            <motion.div
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
+              transition={{ delay: 0.85 }}
+              className="rounded-[40px] bg-[#ede339] p-5 border border-yellow-200/50 text-gray-900"
+            >
+              <div className="flex items-start gap-3">
+                <span className="text-3xl">🎯</span>
+                <div>
+                  <h3 className="font-bold text-sm mb-1">Stay Active</h3>
+                  <p className="text-xs text-gray-700">
+                    Aim for at least 6000 steps daily for optimal wellness
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Tip 2 - Blue Card */}
+            <motion.div
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
+              transition={{ delay: 0.9 }}
+              className="rounded-[40px] bg-gradient-to-br from-blue-500 to-blue-600 p-5 border border-blue-400/30 text-white"
+            >
+              <div className="flex items-start gap-3">
+                <span className="text-3xl">🧘</span>
+                <div>
+                  <h3 className="font-bold text-sm mb-1">Mind & Body</h3>
+                  <p className="text-xs text-white/80">
+                    Use our mood tracker to monitor your mental wellbeing
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Tip 3 - Green Card */}
+            <motion.div
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
+              transition={{ delay: 0.95 }}
+              className="rounded-[40px] bg-gradient-to-br from-green-500 to-green-600 p-5 border border-green-400/30 text-white"
+            >
+              <div className="flex items-start gap-3">
+                <span className="text-3xl">🎵</span>
+                <div>
+                  <h3 className="font-bold text-sm mb-1">Relax & Enjoy</h3>
+                  <p className="text-xs text-white/80">
+                    Listen to curated music to relax and unwind
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.section>
         </div>
       </div>
 
-      {/* Quiz Modal */}
       <QuizModal isOpen={showQuiz} onClose={() => setShowQuiz(false)} />
-
-      {/* Step Tracker Modal */}
       <StepTrackerModal
         isOpen={showTracker}
         onClose={() => setShowTracker(false)}
       />
-      {/* Mood Tracker Component */}
-      <MoodTracker
-        isOpen={showMoodTracker}
-        onClose={() => setShowMoodTracker(false)}
-      />
-      {/* Joke Modal */}
+      <MoodTracker isOpen={showMoodTracker} onClose={() => setShowMoodTracker(false)} />
       <JokeModal isOpen={showJoke} onClose={() => setShowJoke(false)} />
     </PageLayout>
   );

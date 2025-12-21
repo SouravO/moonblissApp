@@ -15,16 +15,16 @@
     "@capacitor/ios": "^8.0.0",
     "@ionic/react": "^8.7.13",
     "@ionic/react-router": "^8.7.13",
-    "@react-three/fiber": "^9.4.2",
     "@tailwindcss/vite": "^4.1.18",
     "date-fns": "^4.1.0",
+    "framer-motion": "^12.23.26",
     "ionicons": "^8.0.13",
+    "lucide-react": "^0.562.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router": "^5.3.4",
     "react-router-dom": "^5.3.4",
-    "tailwindcss": "^4.1.18",
-    "three": "^0.182.0"
+    "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
     "@capacitor/cli": "^7.4.4",
@@ -36,6 +36,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "terser": "^5.44.1",
     "vite": "^7.2.4"
   }
 }
