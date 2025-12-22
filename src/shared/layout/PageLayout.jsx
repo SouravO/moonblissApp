@@ -10,11 +10,10 @@ const PageLayout = ({ title, children }) => {
   return (
     <IonPage>
       <IonContent
+        fullscreen
         style={{
+          "--background": "#1a43bf", // blue
           "--padding-bottom": "calc(70px + env(safe-area-inset-bottom, 0px))",
-          "--padding-left": "0",
-          "--padding-right": "0",
-          "--padding-top": "0",
         }}
       >
         {children}
