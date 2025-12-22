@@ -1,26 +1,26 @@
-import React, { createContext, useContext, useCallback, useState } from "react";
+import React, { createContext, useContext, useCallback, useRef } from "react";
 
 const BackButtonContext = createContext();
 
 export const BackButtonProvider = ({ children }) => {
-  const [backStack, setBackStack] = useState([]);
+  const backStackRef = useRef([]);
 
   const registerBackHandler = useCallback((handler) => {
-    setBackStack((prev) => [...prev, handler]);
+    backStackRef.current.push(handler);
 
     return () => {
-      setBackStack((prev) => prev.filter((h) => h !== handler));
+      backStackRef.current = backStackRef.current.filter((h) => h !== handler);
     };
   }, []);
 
   const handleBack = useCallback(() => {
-    if (backStack.length > 0) {
-      const lastHandler = backStack[backStack.length - 1];
+    if (backStackRef.current.length > 0) {
+      const lastHandler = backStackRef.current[backStackRef.current.length - 1];
       lastHandler();
       return true; // Back was handled
     }
     return false; // Back was not handled
-  }, [backStack]);
+  }, []);
 
   return (
     <BackButtonContext.Provider value={{ registerBackHandler, handleBack }}>
@@ -38,7 +38,7 @@ export const useBackHandler = (handler) => {
 
   React.useEffect(() => {
     return context.registerBackHandler(handler);
-  }, [handler, context]);
+  }, [handler, context.registerBackHandler]);
 };
 
 export const useBackButtonContext = () => {

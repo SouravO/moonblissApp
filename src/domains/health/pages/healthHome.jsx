@@ -41,7 +41,7 @@ const HealthHome = () => {
     <PageLayout>
       <ColorBg />
 
-      <div className="relative bg-black text-gray-100">
+      <div className="relative bg-[#1a43bf] text-gray-100">
         {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -10 }}

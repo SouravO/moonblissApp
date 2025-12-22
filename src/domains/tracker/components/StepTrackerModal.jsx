@@ -282,69 +282,69 @@ const StepTrackerModal = ({ isOpen, onClose }) => {
         }
       `}</style>
 
-      <div className="relative w-[90%] max-w-md rounded-3xl bg-white shadow-2xl overflow-hidden">
+      <div className="relative w-[90%] max-w-md rounded-3xl bg-gradient-to-br from-slate-900 to-slate-800 shadow-2xl overflow-hidden border border-blue-500/20">
         {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-4 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-white/15 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-white/20">
               <IonIcon
                 icon={footstepsOutline}
                 className="text-white text-2xl"
               />
             </div>
             <div>
-              <h2 className="text-white font-bold text-lg">Step Tracker</h2>
-              <p className="text-white/80 text-sm">
-                {isTracking ? "Tracking..." : "Ready to track"}
+              <h2 className="text-white font-bold text-lg tracking-tight">Step Tracker</h2>
+              <p className="text-white/70 text-xs font-medium">
+                {isTracking ? "🔴 Tracking active" : "⏸️ Ready to track"}
               </p>
             </div>
           </div>
           <button
             onClick={handleClose}
-            className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
+            className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center hover:bg-white/25 transition-colors backdrop-blur-sm border border-white/20"
           >
             <IonIcon icon={closeOutline} className="text-white text-2xl" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-6 space-y-6">
           {/* Main Step Counter */}
-          <div className="relative flex justify-center mb-6">
+          <div className="relative flex justify-center">
             {/* Progress Ring */}
-            <div className="relative w-48 h-48">
+            <div className="relative w-56 h-56">
               {/* Background circle */}
-              <svg className="absolute inset-0 w-full h-full -rotate-90">
+              <svg className="absolute inset-0 w-full h-full -rotate-90 drop-shadow-lg">
                 <circle
-                  cx="96"
-                  cy="96"
-                  r="88"
+                  cx="112"
+                  cy="112"
+                  r="100"
                   fill="none"
-                  stroke="#e5e7eb"
+                  stroke="rgba(255, 255, 255, 0.08)"
                   strokeWidth="12"
                 />
                 <circle
-                  cx="96"
-                  cy="96"
-                  r="88"
+                  cx="112"
+                  cy="112"
+                  r="100"
                   fill="none"
-                  stroke="url(#gradient)"
+                  stroke="url(#blueGradient)"
                   strokeWidth="12"
                   strokeLinecap="round"
-                  strokeDasharray={2 * Math.PI * 88}
-                  strokeDashoffset={2 * Math.PI * 88 * (1 - progress / 100)}
-                  className="transition-all duration-500"
+                  strokeDasharray={2 * Math.PI * 100}
+                  strokeDashoffset={2 * Math.PI * 100 * (1 - progress / 100)}
+                  className="transition-all duration-500 drop-shadow-lg"
                 />
                 <defs>
                   <linearGradient
-                    id="gradient"
+                    id="blueGradient"
                     x1="0%"
                     y1="0%"
                     x2="100%"
                     y2="0%"
                   >
-                    <stop offset="0%" stopColor="#10b981" />
-                    <stop offset="100%" stopColor="#14b8a6" />
+                    <stop offset="0%" stopColor="#3b82f6" />
+                    <stop offset="100%" stopColor="#60a5fa" />
                   </linearGradient>
                 </defs>
               </svg>
@@ -352,7 +352,7 @@ const StepTrackerModal = ({ isOpen, onClose }) => {
               {/* Pulse effect when tracking */}
               {isTracking && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-32 h-32 rounded-full bg-emerald-500/20 pulse-ring" />
+                  <div className="w-40 h-40 rounded-full bg-blue-500/20 pulse-ring backdrop-blur-sm" />
                 </div>
               )}
 
@@ -360,59 +360,62 @@ const StepTrackerModal = ({ isOpen, onClose }) => {
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <IonIcon
                   icon={footstepsOutline}
-                  className="text-emerald-500 text-3xl mb-1"
+                  className="text-blue-400 text-3xl mb-2 drop-shadow-lg"
                 />
-                <span className="text-4xl font-bold text-gray-800">
+                <span className="text-5xl font-bold text-white drop-shadow-lg">
                   {steps}
                 </span>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-blue-200/80 mt-1">
                   / {dailyGoal} steps
                 </span>
+                <div className="mt-3 text-xs text-white/60">
+                  {Math.round(progress)}% complete
+                </div>
               </div>
             </div>
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="bg-orange-50 rounded-xl p-3 text-center">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-gradient-to-br from-blue-600/30 to-blue-700/20 rounded-2xl p-4 text-center border border-blue-500/30 backdrop-blur-sm hover:border-blue-500/50 transition-colors">
               <IonIcon
                 icon={flameOutline}
-                className="text-orange-500 text-xl mb-1"
+                className="text-blue-300 text-2xl mb-2 inline-block"
               />
-              <p className="text-lg font-bold text-gray-800">{calories}</p>
-              <p className="text-xs text-gray-500">Calories</p>
+              <p className="text-2xl font-bold text-white">{calories}</p>
+              <p className="text-xs text-blue-200/70 mt-1 font-medium">Calories</p>
             </div>
-            <div className="bg-blue-50 rounded-xl p-3 text-center">
+            <div className="bg-gradient-to-br from-cyan-600/30 to-cyan-700/20 rounded-2xl p-4 text-center border border-cyan-500/30 backdrop-blur-sm hover:border-cyan-500/50 transition-colors">
               <IonIcon
                 icon={trendingUpOutline}
-                className="text-blue-500 text-xl mb-1"
+                className="text-cyan-300 text-2xl mb-2 inline-block"
               />
-              <p className="text-lg font-bold text-gray-800">{distance}</p>
-              <p className="text-xs text-gray-500">km</p>
+              <p className="text-2xl font-bold text-white">{distance}</p>
+              <p className="text-xs text-cyan-200/70 mt-1 font-medium">km</p>
             </div>
-            <div className="bg-purple-50 rounded-xl p-3 text-center">
+            <div className="bg-gradient-to-br from-indigo-600/30 to-indigo-700/20 rounded-2xl p-4 text-center border border-indigo-500/30 backdrop-blur-sm hover:border-indigo-500/50 transition-colors">
               <IonIcon
                 icon={timeOutline}
-                className="text-purple-500 text-xl mb-1"
+                className="text-indigo-300 text-2xl mb-2 inline-block"
               />
-              <p className="text-lg font-bold text-gray-800">
+              <p className="text-2xl font-bold text-white">
                 {formatDuration(duration)}
               </p>
-              <p className="text-xs text-gray-500">Time</p>
+              <p className="text-xs text-indigo-200/70 mt-1 font-medium">Time</p>
             </div>
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 text-red-600 text-sm p-3 rounded-xl mb-4 text-center">
-              {error}
+            <div className="bg-red-500/15 text-red-300 text-sm p-4 rounded-2xl text-center border border-red-500/30 backdrop-blur-sm">
+              ⚠️ {error}
             </div>
           )}
 
           {/* Debug Info - Shows sensor data when tracking */}
           {isTracking && debugInfo && (
-            <div className="bg-gray-100 text-gray-600 text-xs p-2 rounded-lg mb-4 text-center font-mono">
-              {debugInfo}
+            <div className="bg-blue-600/20 text-blue-200 text-xs p-3 rounded-xl text-center font-mono border border-blue-500/30 backdrop-blur-sm">
+              📊 {debugInfo}
             </div>
           )}
 
@@ -420,32 +423,34 @@ const StepTrackerModal = ({ isOpen, onClose }) => {
           <div className="flex gap-3">
             <button
               onClick={toggleTracking}
-              className={`flex-1 py-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${
+              className={`flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all transform active:scale-95 ${
                 isTracking
-                  ? "bg-red-500 text-white hover:bg-red-600"
-                  : "bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:opacity-90"
+                  ? "bg-gradient-to-r from-red-600 to-red-500 text-white hover:from-red-700 hover:to-red-600 shadow-lg shadow-red-600/30"
+                  : "bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-700 hover:to-blue-600 shadow-lg shadow-blue-600/30"
               }`}
             >
               <IonIcon
                 icon={isTracking ? pauseOutline : playOutline}
                 className="text-xl"
               />
-              {isTracking ? "Stop" : "Start Tracking"}
+              {isTracking ? "Stop" : "Start"}
             </button>
 
             <button
               onClick={resetTracking}
-              className="w-14 h-14 bg-gray-100 rounded-xl flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-colors"
+              className="w-14 h-14 bg-slate-700/50 rounded-2xl flex items-center justify-center text-blue-300 hover:bg-slate-700 transition-all transform active:scale-95 border border-slate-600/50 backdrop-blur-sm"
+              title="Reset all data"
             >
               <IonIcon icon={refreshOutline} className="text-xl" />
             </button>
           </div>
 
           {/* Tip */}
-          <p className="text-center text-xs text-gray-400 mt-4">
-            💡 Keep your phone in your pocket or hand while walking for best
-            accuracy
-          </p>
+          <div className="bg-gradient-to-r from-blue-600/20 to-cyan-600/20 rounded-2xl p-3 border border-blue-500/30 backdrop-blur-sm">
+            <p className="text-center text-xs text-blue-200 font-medium">
+              💡 Keep your phone in your pocket while walking for best accuracy
+            </p>
+          </div>
         </div>
       </div>
     </div>

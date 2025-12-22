@@ -79,20 +79,23 @@ const BottomNav = () => {
           left: 50%;
           transform: translateX(-50%);
           z-index: 50;
+          width: 90%;
+          max-width: 500px;
         }
         
         .floating-nav {
           display: flex;
-          gap: 8px;
-          padding: 12px 16px;
+          gap: 12px;
+          padding: 14px 20px;
           background: rgba(0, 0, 0, 0.7);
           backdrop-filter: blur(16px);
           -webkit-backdrop-filter: blur(16px);
           border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 20px;
+          border-radius: 24px;
           box-shadow: 0 8px 24px rgba(168, 85, 247, 0.15), 
                       0 0 1px rgba(255, 255, 255, 0.1) inset;
           transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+          justify-content: space-around;
         }
         
         .floating-nav:hover {
@@ -106,12 +109,13 @@ const BottomNav = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          width: 44px;
-          height: 44px;
-          border-radius: 12px;
+          width: 48px;
+          height: 48px;
+          border-radius: 14px;
           cursor: pointer;
           transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
           color: rgba(255, 255, 255, 0.6);
+          flex: 0 0 auto;
         }
         
         .nav-item:hover {

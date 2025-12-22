@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useHistory, useLocation } from "react-router-dom";
 import { useBackButtonContext } from "@/infrastructure/context/BackButtonContext";
 
@@ -18,47 +18,47 @@ export const useBackButton = () => {
   const backPressTimeRef = useRef(null);
   const listenerRef = useRef(null);
 
+  const handleBackButton = useCallback(async () => {
+    // Try to handle back with modal/context first
+    if (handleBack()) {
+      return;
+    }
+
+    const isHealthHome = location.pathname === "/health";
+
+    if (isHealthHome) {
+      // On health home - require double tap to exit
+      if (backPressedOnceRef.current) {
+        // Second tap - exit app
+        try {
+          const { App } = window.Capacitor;
+          if (App && App.exitApp) {
+            App.exitApp();
+          }
+        } catch (error) {
+          console.warn("Capacitor App exit not available");
+        }
+      } else {
+        // First tap - show warning
+        backPressedOnceRef.current = true;
+        alert("Press back again to exit");
+
+        // Reset flag after 2 seconds
+        backPressTimeRef.current = setTimeout(() => {
+          backPressedOnceRef.current = false;
+        }, 2000);
+      }
+    } else {
+      // On other pages - go back to health home
+      history.push("/health");
+    }
+  }, [handleBack, location.pathname, history]);
+
   useEffect(() => {
     // Only setup back button on native platforms
     if (!isNativePlatform()) {
       return;
     }
-
-    const handleBackButton = async () => {
-      // Try to handle back with modal/context first
-      if (handleBack()) {
-        return;
-      }
-
-      const isHealthHome = location.pathname === "/health";
-
-      if (isHealthHome) {
-        // On health home - require double tap to exit
-        if (backPressedOnceRef.current) {
-          // Second tap - exit app
-          try {
-            const { App } = window.Capacitor;
-            if (App && App.exitApp) {
-              App.exitApp();
-            }
-          } catch (error) {
-            console.warn("Capacitor App exit not available");
-          }
-        } else {
-          // First tap - show warning
-          backPressedOnceRef.current = true;
-          alert("Press back again to exit");
-
-          // Reset flag after 2 seconds
-          backPressTimeRef.current = setTimeout(() => {
-            backPressedOnceRef.current = false;
-          }, 2000);
-        }
-      } else {
-        // On other pages - go back to health home
-        history.push("/health");
-      }
-    };
 
     const setupBackButton = async () => {
       try {
@@ -84,5 +84,5 @@ export const useBackButton = () => {
         clearTimeout(backPressTimeRef.current);
       }
     };
-  }, [history, location.pathname, handleBack]);
+  }, [handleBackButton]);
 };

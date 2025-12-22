@@ -116,7 +116,7 @@ const Music = () => {
 
   return (
     <PageLayout >
-      <div>
+      <div className="bg-[#1a43bf]">
         {/* Header */}
         <div className="px-4 pt-2 pb-4">
           <h1 className="text-2xl font-bold text-gray-900">
