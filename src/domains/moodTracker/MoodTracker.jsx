@@ -6,44 +6,44 @@ const moods = [
   {
     emoji: "😢",
     label: "Very Sad",
-    color: "from-blue-400 to-blue-600",
+    color: "from-blue-500 to-blue-700",
     bg: "bg-blue-100",
   },
   {
     emoji: "😔",
     label: "Sad",
-    color: "from-indigo-400 to-indigo-600",
-    bg: "bg-indigo-100",
+    color: "from-blue-500 to-cyan-600",
+    bg: "bg-blue-100",
   },
   {
     emoji: "😐",
     label: "Neutral",
-    color: "from-gray-400 to-gray-600",
-    bg: "bg-gray-100",
+    color: "from-cyan-500 to-cyan-600",
+    bg: "bg-cyan-100",
   },
   {
     emoji: "🙂",
     label: "Good",
-    color: "from-yellow-400 to-amber-500",
-    bg: "bg-yellow-100",
+    color: "from-cyan-400 to-teal-500",
+    bg: "bg-cyan-100",
   },
   {
     emoji: "😊",
     label: "Happy",
-    color: "from-orange-400 to-orange-500",
-    bg: "bg-orange-100",
+    color: "from-blue-600 to-blue-500",
+    bg: "bg-blue-100",
   },
   {
     emoji: "😄",
     label: "Very Happy",
-    color: "from-pink-400 to-rose-500",
-    bg: "bg-pink-100",
+    color: "from-blue-600 to-cyan-500",
+    bg: "bg-blue-100",
   },
   {
     emoji: "🥰",
     label: "Amazing",
-    color: "from-purple-400 to-pink-500",
-    bg: "bg-purple-100",
+    color: "from-blue-500 to-indigo-600",
+    bg: "bg-indigo-100",
   },
 ];
 
@@ -150,40 +150,46 @@ const MoodTracker = ({ isOpen, onClose }) => {
         }
       `}</style>
 
-      <div className="relative w-[90%] max-w-md rounded-3xl bg-white shadow-2xl overflow-hidden">
+      <div className="relative w-[90%] max-w-md rounded-3xl bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 shadow-2xl shadow-blue-600/40 overflow-hidden border border-blue-500/20 group">
+        {/* Animated background glow */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-transparent to-cyan-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        
         {/* Header */}
         <div
-          className={`bg-gradient-to-r ${currentMood.color} px-6 py-4 flex items-center justify-between transition-all duration-300`}
+          className={`relative z-10 bg-gradient-to-r ${currentMood.color} px-6 py-4 flex items-center justify-between transition-all duration-300 overflow-hidden`}
         >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-2xl">
+          {/* Shine effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-shimmer" />
+          
+          <div className="relative z-20 flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center text-2xl shadow-lg">
               {currentMood.emoji}
             </div>
             <div>
-              <h2 className="text-white font-bold text-lg">Mood Tracker</h2>
-              <p className="text-white/80 text-sm">
+              <h2 className="text-white font-black text-lg">Mood Tracker</h2>
+              <p className="text-blue-100 text-sm">
                 How are you feeling today?
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
+            className="relative z-20 w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-all hover:scale-110 active:scale-95"
           >
             <IonIcon icon={closeOutline} className="text-white text-2xl" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="relative z-10 p-6">
           {/* Large Emoji Display */}
           <div className="flex justify-center mb-6">
             <div
-              className={`w-40 h-40 ${currentMood.bg} rounded-full flex items-center justify-center transition-all duration-300`}
+              className={`w-40 h-40 ${currentMood.bg} rounded-full flex items-center justify-center transition-all duration-300 border-2 border-blue-400/30 shadow-lg shadow-blue-500/30`}
             >
               <span
                 key={moodIndex}
-                className="text-8xl emoji-bounce float-animation"
+                className="text-8xl emoji-bounce float-animation drop-shadow-lg"
               >
                 {currentMood.emoji}
               </span>
@@ -192,10 +198,10 @@ const MoodTracker = ({ isOpen, onClose }) => {
 
           {/* Mood Label */}
           <div className="text-center mb-6">
-            <p className="text-2xl font-bold text-gray-800 transition-all duration-300">
+            <p className="text-2xl font-black text-white bg-gradient-to-r from-blue-200 via-cyan-100 to-blue-200 bg-clip-text text-transparent transition-all duration-300">
               {currentMood.label}
             </p>
-            <p className="text-gray-500 text-sm mt-1">
+            <p className="text-blue-300/70 text-sm mt-1">
               Slide to change your mood
             </p>
           </div>
@@ -203,7 +209,7 @@ const MoodTracker = ({ isOpen, onClose }) => {
           {/* Mood Slider */}
           <div className="mb-6 px-2">
             <div
-              className={`relative h-12 bg-gradient-to-r ${currentMood.color} rounded-full p-1 transition-all duration-300`}
+              className={`relative h-12 bg-gradient-to-r ${currentMood.color} rounded-full p-1 transition-all duration-300 shadow-lg shadow-blue-500/30`}
             >
               <input
                 type="range"
@@ -219,7 +225,7 @@ const MoodTracker = ({ isOpen, onClose }) => {
             </div>
 
             {/* Emoji indicators */}
-            <div className="flex justify-between mt-3 px-1">
+            <div className="flex justify-between mt-4 px-1">
               {moods.map((mood, index) => (
                 <button
                   key={index}
@@ -227,10 +233,10 @@ const MoodTracker = ({ isOpen, onClose }) => {
                     setMoodIndex(index);
                     setSaved(false);
                   }}
-                  className={`text-xl transition-all duration-200 ${
+                  className={`text-2xl transition-all duration-200 hover:scale-110 ${
                     index === moodIndex
-                      ? "transform scale-125"
-                      : "opacity-50 hover:opacity-75"
+                      ? "transform scale-125 drop-shadow-lg"
+                      : "opacity-60 hover:opacity-85"
                   }`}
                 >
                   {mood.emoji}
@@ -241,8 +247,8 @@ const MoodTracker = ({ isOpen, onClose }) => {
 
           {/* Today's recorded mood */}
           {todaysMood && !saved && (
-            <div className="bg-gray-50 rounded-xl p-3 mb-4 text-center">
-              <p className="text-sm text-gray-500">
+            <div className="bg-blue-600/20 border border-blue-400/30 rounded-xl p-3 mb-4 text-center backdrop-blur-sm">
+              <p className="text-sm text-blue-200">
                 Today's mood:{" "}
                 <span className="text-xl">{todaysMood.emoji}</span>{" "}
                 {todaysMood.label}
@@ -254,11 +260,12 @@ const MoodTracker = ({ isOpen, onClose }) => {
           <button
             onClick={saveMood}
             disabled={saved}
-            className={`w-full py-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${
+            className={`mx-auto block px-8 py-4 rounded-xl font-black flex items-center justify-center gap-2 transition-all ${
               saved
-                ? "bg-green-500 text-white"
-                : `bg-gradient-to-r ${currentMood.color} text-white hover:opacity-90`
+                ? "bg-gradient-to-r from-emerald-600 to-cyan-600 text-white shadow-lg shadow-emerald-500/50"
+                : `bg-gradient-to-r ${currentMood.color} text-white hover:shadow-xl hover:shadow-blue-500/50 hover:-translate-y-1 active:scale-95`
             }`}
+            style={{ letterSpacing: '0.05em' }}
           >
             {saved ? (
               <>
@@ -268,13 +275,13 @@ const MoodTracker = ({ isOpen, onClose }) => {
             ) : (
               <>
                 <span className="text-xl">{currentMood.emoji}</span>
-                Save Today's Mood
+                Save Mood
               </>
             )}
           </button>
 
           {/* Tip */}
-          <p className="text-center text-xs text-gray-400 mt-4">
+          <p className="text-center text-xs text-blue-300/60 mt-4">
             💡 Tracking your mood helps you understand your emotional patterns
           </p>
         </div>

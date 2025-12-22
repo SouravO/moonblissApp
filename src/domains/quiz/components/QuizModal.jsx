@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { IonIcon } from "@ionic/react";
 import { closeOutline, checkmarkCircle, closeCircle } from "ionicons/icons";
 
@@ -66,7 +66,6 @@ const QuizModal = ({ isOpen, onClose }) => {
         setScore((prev) => prev + 1);
       }
 
-      // Auto advance after 1.5 seconds
       setTimeout(() => {
         if (currentQuestionIndex < totalQuestions - 1) {
           setCurrentQuestionIndex((prev) => prev + 1);
@@ -75,7 +74,7 @@ const QuizModal = ({ isOpen, onClose }) => {
         } else {
           setShowResult(true);
         }
-      }, 1500);
+      }, 900);
     },
     [answered, currentQuestion, currentQuestionIndex, totalQuestions]
   );
@@ -95,16 +94,78 @@ const QuizModal = ({ isOpen, onClose }) => {
 
   const getScoreMessage = () => {
     const percentage = (score / totalQuestions) * 100;
-    if (percentage === 100)
-      return { text: "Perfect! 🎉", color: "text-emerald-500" };
-    if (percentage >= 80)
-      return { text: "Excellent! 🌟", color: "text-emerald-500" };
-    if (percentage >= 60)
-      return { text: "Good job! 👏", color: "text-blue-500" };
-    if (percentage >= 40)
-      return { text: "Keep learning! 📚", color: "text-orange-500" };
-    return { text: "Try again! 💪", color: "text-pink-500" };
+    if (percentage === 100) return { text: "Perfect! 🎉", color: "text-blue-200" };
+    if (percentage >= 80) return { text: "Excellent! 🌟", color: "text-blue-200" };
+    if (percentage >= 60) return { text: "Good job! 👏", color: "text-blue-200" };
+    if (percentage >= 40) return { text: "Keep learning! 📚", color: "text-blue-200" };
+    return { text: "Try again! 💪", color: "text-blue-200" };
   };
+
+  // Standard button system
+  const btnBase =
+    "relative w-full min-h-[52px] px-4 py-3 rounded-xl font-semibold text-[15px] tracking-wide " +
+    "flex items-center justify-center gap-2 select-none " +
+    "transition-all duration-200 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-cyan-400/50 " +
+    "disabled:cursor-not-allowed";
+
+  const btnDefault =
+    "bg-slate-800/60 text-white border border-slate-600/50 " +
+    "shadow-[0_8px_18px_rgba(0,0,0,0.35)] " +
+    "hover:bg-slate-700/60 hover:border-slate-500/70";
+
+  const btnSelected =
+    "bg-slate-700/70 text-white border border-cyan-400/40 " +
+    "shadow-[0_10px_22px_rgba(34,211,238,0.12)]";
+
+  const btnCorrect =
+    "bg-emerald-600/85 text-white border border-emerald-300/60 " +
+    "shadow-[0_12px_26px_rgba(16,185,129,0.20)]";
+
+  const btnWrong =
+    "bg-rose-600/85 text-white border border-rose-300/60 " +
+    "shadow-[0_12px_26px_rgba(244,63,94,0.20)]";
+
+  const btnMuted =
+    "bg-slate-900/40 text-slate-400 border border-slate-700/50 shadow-none";
+
+  const getOptionClass = useCallback(
+    (option) => {
+      const isSelected = selectedAnswer === option;
+      const isCorrect = option === currentQuestion.correctAnswer;
+
+      if (answered) {
+        if (isCorrect) return `${btnBase} ${btnCorrect}`;
+        if (isSelected && !isCorrect) return `${btnBase} ${btnWrong}`;
+        return `${btnBase} ${btnMuted}`;
+      }
+
+      if (isSelected) return `${btnBase} ${btnSelected}`;
+      return `${btnBase} ${btnDefault}`;
+    },
+    [
+      answered,
+      selectedAnswer,
+      currentQuestion.correctAnswer,
+      btnBase,
+      btnCorrect,
+      btnWrong,
+      btnMuted,
+      btnSelected,
+      btnDefault,
+    ]
+  );
+
+  const primaryBtn =
+    "min-h-[52px] rounded-xl px-4 py-3 font-semibold text-[15px] tracking-wide " +
+    "transition-all duration-200 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-cyan-400/50";
+
+  const primarySolid =
+    "bg-gradient-to-r from-blue-600 to-cyan-500 text-white border border-white/10 " +
+    "shadow-[0_10px_24px_rgba(59,130,246,0.18)] hover:brightness-110";
+
+  const secondaryGhost =
+    "bg-slate-800/50 text-white border border-slate-600/50 " +
+    "shadow-[0_8px_18px_rgba(0,0,0,0.25)] hover:bg-slate-700/50 hover:border-slate-500/70";
 
   if (!isOpen) return null;
 
@@ -127,14 +188,9 @@ const QuizModal = ({ isOpen, onClose }) => {
               <div
                 className="w-3 h-3 rounded-sm"
                 style={{
-                  backgroundColor: [
-                    "#10b981",
-                    "#ec4899",
-                    "#f59e0b",
-                    "#3b82f6",
-                    "#8b5cf6",
-                    "#ef4444",
-                  ][Math.floor(Math.random() * 6)],
+                  backgroundColor: ["#1e40af", "#0369a1", "#0284c7", "#0ea5e9", "#06b6d4", "#22d3ee"][
+                    Math.floor(Math.random() * 6)
+                  ],
                   transform: `rotate(${Math.random() * 360}deg)`,
                 }}
               />
@@ -146,55 +202,38 @@ const QuizModal = ({ isOpen, onClose }) => {
       {/* CSS for animations */}
       <style>{`
         @keyframes confetti-fall {
-          0% {
-            transform: translateY(0) rotate(0deg);
-            opacity: 1;
-          }
-          100% {
-            transform: translateY(100vh) rotate(720deg);
-            opacity: 0;
-          }
+          0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+          100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
         }
-        .animate-confetti {
-          animation: confetti-fall 3s ease-out forwards;
-        }
+        .animate-confetti { animation: confetti-fall 3s ease-out forwards; }
         @keyframes bounce-in {
           0% { transform: scale(0.5); opacity: 0; }
-          50% { transform: scale(1.1); }
+          50% { transform: scale(1.05); }
           100% { transform: scale(1); opacity: 1; }
         }
-        .animate-bounce-in {
-          animation: bounce-in 0.5s ease-out forwards;
-        }
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-5px); }
-          75% { transform: translateX(5px); }
-        }
-        .animate-shake {
-          animation: shake 0.3s ease-in-out;
-        }
+        .animate-bounce-in { animation: bounce-in 0.45s ease-out forwards; }
       `}</style>
 
-      <div className="relative w-[90%] max-w-md rounded-3xl bg-white shadow-2xl overflow-hidden">
+      <div className="relative w-[90%] max-w-md rounded-3xl bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 shadow-2xl shadow-blue-600/40 overflow-hidden border border-blue-500/20 group">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-transparent to-cyan-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+        <div className="relative z-10 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 px-6 py-4 flex items-center justify-between overflow-hidden">
+          <div className="relative z-20 flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg">
               <span className="text-xl">🧠</span>
             </div>
             <div>
-              <h2 className="text-white font-bold text-lg">Health Quiz</h2>
-              <p className="text-white/80 text-sm">
-                {showResult
-                  ? "Results"
-                  : `Question ${currentQuestionIndex + 1} of ${totalQuestions}`}
+              <h2 className="text-white font-black text-lg">Health Quiz</h2>
+              <p className="text-blue-100 text-sm">
+                {showResult ? "Results" : `Question ${currentQuestionIndex + 1} of ${totalQuestions}`}
               </p>
             </div>
           </div>
           <button
             onClick={handleClose}
-            className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
+            className="relative z-20 w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-all active:scale-95"
+            aria-label="Close"
           >
             <IonIcon icon={closeOutline} className="text-white text-2xl" />
           </button>
@@ -202,28 +241,22 @@ const QuizModal = ({ isOpen, onClose }) => {
 
         {/* Progress Bar */}
         {!showResult && (
-          <div className="h-1 bg-gray-200">
+          <div className="relative z-10 h-2 bg-slate-700/50 border-b border-blue-500/20">
             <div
-              className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500"
-              style={{
-                width: `${
-                  ((currentQuestionIndex + 1) / totalQuestions) * 100
-                }%`,
-              }}
+              className="h-full bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-600 transition-all duration-500 shadow-lg shadow-blue-500/50"
+              style={{ width: `${((currentQuestionIndex + 1) / totalQuestions) * 100}%` }}
             />
           </div>
         )}
 
         {/* Content */}
-        <div className="p-6">
+        <div className="relative z-10 p-6">
           {!showResult ? (
             <>
               {/* Question */}
-              <div className="text-center mb-6">
-                <span className="text-5xl mb-4 block">
-                  {currentQuestion.emoji}
-                </span>
-                <h3 className="text-xl font-bold text-gray-800 leading-relaxed">
+              <div className="text-center mb-8">
+                <span className="text-6xl mb-4 block drop-shadow-lg">{currentQuestion.emoji}</span>
+                <h3 className="text-2xl font-black text-white leading-snug bg-gradient-to-r from-blue-200 via-cyan-100 to-blue-200 bg-clip-text text-transparent">
                   {currentQuestion.question}
                 </h3>
               </div>
@@ -231,98 +264,59 @@ const QuizModal = ({ isOpen, onClose }) => {
               {/* Options */}
               <div className="space-y-3">
                 {currentQuestion.options.map((option, index) => {
-                  const isSelected = selectedAnswer === option;
                   const isCorrect = option === currentQuestion.correctAnswer;
-                  const showCorrectness = answered;
-
-                  let buttonStyle =
-                    "bg-gray-100 text-gray-700 hover:bg-gray-200";
-                  if (showCorrectness) {
-                    if (isCorrect) {
-                      buttonStyle =
-                        "bg-emerald-100 text-emerald-700 border-2 border-emerald-500";
-                    } else if (isSelected && !isCorrect) {
-                      buttonStyle =
-                        "bg-red-100 text-red-700 border-2 border-red-500 animate-shake";
-                    } else {
-                      buttonStyle = "bg-gray-100 text-gray-400";
-                    }
-                  } else if (isSelected) {
-                    buttonStyle =
-                      "bg-purple-100 text-purple-700 border-2 border-purple-500";
-                  }
+                  const isSelected = selectedAnswer === option;
 
                   return (
                     <button
                       key={index}
                       onClick={() => handleAnswerSelect(option)}
                       disabled={answered}
-                      className={`w-full p-4 rounded-xl font-medium text-left transition-all duration-200 flex items-center justify-between ${buttonStyle}`}
+                      className={getOptionClass(option)}
                     >
+                      {answered && isCorrect && (
+                        <IonIcon icon={checkmarkCircle} className="text-white text-xl" />
+                      )}
+                      {answered && isSelected && !isCorrect && (
+                        <IonIcon icon={closeCircle} className="text-white text-xl" />
+                      )}
                       <span>{option}</span>
-                      {showCorrectness && isCorrect && (
-                        <IonIcon
-                          icon={checkmarkCircle}
-                          className="text-emerald-500 text-xl"
-                        />
-                      )}
-                      {showCorrectness && isSelected && !isCorrect && (
-                        <IonIcon
-                          icon={closeCircle}
-                          className="text-red-500 text-xl"
-                        />
-                      )}
                     </button>
                   );
                 })}
               </div>
             </>
           ) : (
-            /* Results Screen */
-            <div className="text-center py-6 animate-bounce-in">
-              {/* Trophy/Medal */}
-              <div className="text-7xl mb-4">
+            <div className="text-center py-8 animate-bounce-in">
+              <div className="text-8xl mb-6 drop-shadow-2xl">
                 {score === totalQuestions ? "🏆" : score >= 3 ? "🥈" : "🎯"}
               </div>
 
-              {/* Score */}
-              <h3
-                className={`text-3xl font-bold mb-2 ${getScoreMessage().color}`}
-              >
+              <h3 className={`text-4xl font-black mb-2 ${getScoreMessage().color}`}>
                 {getScoreMessage().text}
               </h3>
 
-              <p className="text-gray-600 text-lg mb-2">Your Score</p>
+              <p className="text-blue-300/80 text-lg mb-4">Your Score</p>
 
-              <div className="flex items-center justify-center gap-2 mb-6">
-                <span className="text-5xl font-bold text-gray-800">
+              <div className="flex items-center justify-center gap-2 mb-8">
+                <span className="text-6xl font-black bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
                   {score}
                 </span>
-                <span className="text-2xl text-gray-400">
-                  / {totalQuestions}
-                </span>
+                <span className="text-2xl text-blue-300/60">/ {totalQuestions}</span>
               </div>
 
-              {/* Score percentage */}
-              <div className="w-full bg-gray-200 rounded-full h-4 mb-6 overflow-hidden">
+              <div className="w-full bg-slate-700/50 rounded-full h-5 mb-8 overflow-hidden border border-blue-500/30 shadow-inner">
                 <div
-                  className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-1000"
+                  className="h-full bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-600 transition-all duration-700 shadow-lg shadow-blue-500/50"
                   style={{ width: `${(score / totalQuestions) * 100}%` }}
                 />
               </div>
 
-              {/* Action Buttons */}
               <div className="flex gap-3">
-                <button
-                  onClick={handleRestart}
-                  className="flex-1 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-xl hover:opacity-90 transition-opacity"
-                >
-                  Play Again
+                <button onClick={handleRestart} className={`flex-1 ${primaryBtn} ${primarySolid}`}>
+                  Play Again 🔄
                 </button>
-                <button
-                  onClick={handleClose}
-                  className="flex-1 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors"
-                >
+                <button onClick={handleClose} className={`flex-1 ${primaryBtn} ${secondaryGhost}`}>
                   Close
                 </button>
               </div>
