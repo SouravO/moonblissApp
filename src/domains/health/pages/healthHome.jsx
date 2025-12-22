@@ -1,22 +1,26 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import PageLayout from "@/shared/layout/PageLayout";
 import { getUserData } from "@/infrastructure/storage/onboarding";
 import { usePeriodPrediction } from "@/domains/health/hooks/usePeriodPrediction";
 import { motion } from "framer-motion";
 import ColorBg from "@/components/ColorBg";
 import { Bell, MapPin, Phone, TrendingUp } from "lucide-react";
+import { menstrualNutritionTips } from "@/domains/health/data/nutritionTips";
 
 /* Animation presets */
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 },
 };
+// nutrition tips data
 
 const HealthHome = () => {
   const userData = getUserData();
   const userName = userData?.name || "Sarah";
   const { nextPeriod, currentPhase, hasPeriodData, loading } =
     usePeriodPrediction();
+  const { title, subtitle, tips } = menstrualNutritionTips;
+  const [nutritionModal, setNutritionModal] = useState(false);
 
   // Memoize week calculations
   const { weekDays, today } = useMemo(() => {
@@ -25,7 +29,9 @@ const HealthHome = () => {
     const weekDays = [];
     const currentDay = today.getDay();
     const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - (currentDay === 0 ? 6 : currentDay - 1));
+    startOfWeek.setDate(
+      today.getDate() - (currentDay === 0 ? 6 : currentDay - 1)
+    );
 
     for (let i = 0; i < 7; i++) {
       const date = new Date(startOfWeek);
@@ -36,7 +42,6 @@ const HealthHome = () => {
   }, []);
 
   const WEEK_DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-
   return (
     <PageLayout>
       <ColorBg />
@@ -53,35 +58,82 @@ const HealthHome = () => {
               <h1 className="text-3xl font-bold text-white tracking-tight">
                 Hi, {userName}
               </h1>
-              <p className="text-sm text-gray-400 mt-1">Today's health insights</p>
+              <p className="text-sm text-gray-400 mt-1">
+                Today's health insights
+              </p>
             </div>
             <button className="w-12 h-12 rounded-full bg-neutral-800 flex items-center justify-center hover:bg-neutral-700 transition">
               <Bell className="w-6 h-6 text-gray-300" />
             </button>
           </div>
         </motion.header>
+        {nutritionModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 ">
+              <span
+                className="relative text-black right-0 top-0"
+                onClick={() => setNutritionModal(false)}
+              >
+                Close
+              </span>
+              <h2 className="text-2xl font-bold mb-2 text-gray-900">{title}</h2>
+              <p className="text-gray-700 mb-4">{subtitle}</p>
+              {/* only one tip at a time and should be random */}
+              <div className="mb-4 p-4 bg-gray-100 rounded-lg">
+                <h3 className="text-lg font-semibold mb-2 text-black">
+                  {tips[Math.floor(Math.random() * tips.length)].description}
+                </h3>
+              </div>
+              {/* <p>{tips[1]}</p> */}
+            </div>
+          </div>
+        )}
 
         <div className="px-5 space-y-6">
-          {/* Progress Overview - Simple Progress Bar */}
-          <motion.section
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="space-y-3"
-          >
-            <div>
-              <p className="text-sm text-gray-400 mb-2">Cycle Progress</p>
-              <p className="text-5xl font-bold text-white">
-                {Math.min(nextPeriod?.daysUntil || 0, 100)}%
-              </p>
-            </div>
-            <div className="w-full h-4 bg-gray-500 rounded-full overflow-hidden border-2 border-black flex">
+          {/* have your moonbliss */}
+          {currentPhase?.name == "Menstrual" ? (
+            <motion.section
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              {/* Menstrual Phase Content */}
               <div
-                className="h-full bg-white rounded-full transition-all duration-500"
-                style={{ width: `${Math.min(nextPeriod?.daysUntil || 0, 100)}%` }}
-              />
-            </div>
-          </motion.section>
+                className="rounded-[28px] p-6 h-[120px] overflow-hidden relative"
+                style={{
+                  background: "#de699f",
+                }}
+              >
+                <div className="relative z-10">
+                  <h2 className="text-[22px] font-bold text-white leading-tight mb-2">
+                    Huraaayy!.. <br />
+                    Have your Moonbliss
+                  </h2>
+                </div>
+              </div>
+            </motion.section>
+          ) : (
+            <motion.section
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="space-y-3"
+            >
+              <div>
+                <p className="text-sm text-gray-400 mb-2">Cycle Progress</p>
+                <p className="text-5xl font-bold text-white">
+                  {Math.min(nextPeriod?.daysUntil || 0, 100)}%
+                </p>
+              </div>
+              <div className="w-full h-4 bg-gray-500 rounded-full overflow-hidden border-2 border-black flex">
+                <div
+                  className="h-full bg-white rounded-full transition-all duration-500"
+                  style={{
+                    width: `${Math.min(nextPeriod?.daysUntil || 0, 100)}%`,
+                  }}
+                />
+              </div>
+            </motion.section>
+          )}
 
           {/* Main Phase Card - Yellow/Vibrant */}
           <motion.section
@@ -93,18 +145,20 @@ const HealthHome = () => {
           >
             {/* Decorative star */}
             <div className="absolute top-4 right-6 text-4xl opacity-80">✨</div>
-            
+
             <div>
               <h2 className="text-2xl font-bold text-gray-900 mb-1 tracking-tight">
                 {currentPhase?.name || "Follicular"} Phase
               </h2>
               <p className="text-sm text-gray-700 mb-4">
-                {currentPhase?.description || "Time to boost energy and activity"}
+                {currentPhase?.description ||
+                  "Time to boost energy and activity"}
               </p>
 
               {/* Day info - moved up */}
               <p className="text-xs text-gray-900 font-semibold mb-4">
-                Day {currentPhase?.dayInCycle || 1} of {currentPhase?.cycleDays || 28}
+                Day {currentPhase?.dayInCycle || 1} of{" "}
+                {currentPhase?.cycleDays || 28}
               </p>
 
               {/* Slider */}
@@ -196,12 +250,8 @@ const HealthHome = () => {
                         : "bg-white/10 hover:bg-white/20"
                     }`}
                   >
-                    <span className="text-green-50 mb-1">
-                      {WEEK_DAYS[idx]}
-                    </span>
-                    <span className="text-white">
-                      {dayNum}
-                    </span>
+                    <span className="text-green-50 mb-1">{WEEK_DAYS[idx]}</span>
+                    <span className="text-white">{dayNum}</span>
                   </div>
                 );
               })}
@@ -216,7 +266,9 @@ const HealthHome = () => {
             transition={{ delay: 0.45 }}
             className="rounded-[50px] bg-gradient-to-br from-purple-600 to-purple-700 p-6 border border-purple-500/30"
           >
-            <h3 className="text-lg font-bold text-white mb-2">Period Timeline</h3>
+            <h3 className="text-lg font-bold text-white mb-2">
+              Period Timeline
+            </h3>
             <p className="text-xs text-white/80 mb-3">Next period in</p>
             <div className="flex items-baseline gap-3">
               <div className="text-4xl font-bold text-white">
@@ -227,7 +279,9 @@ const HealthHome = () => {
             <div className="w-full h-1 bg-purple-900/40 rounded-full overflow-hidden mt-4">
               <div
                 className="h-full bg-gradient-to-r from-pink-400 to-purple-300 rounded-full transition-all"
-                style={{ width: `${Math.min(nextPeriod?.daysUntil || 0, 100)}%` }}
+                style={{
+                  width: `${Math.min(nextPeriod?.daysUntil || 0, 100)}%`,
+                }}
               />
             </div>
             <p className="text-xs text-white/60 mt-3">
@@ -244,6 +298,7 @@ const HealthHome = () => {
               animate="visible"
               transition={{ delay: 0.5 }}
               className="rounded-[40px] bg-gradient-to-br from-orange-500 to-orange-600 p-5 border border-orange-400/30 cursor-pointer hover:border-orange-300/60 transition-all"
+              onClick={() => setNutritionModal(true)}
             >
               <div className="text-3xl mb-2">🥗</div>
               <h4 className="text-sm font-bold text-white mb-2">Nutrition</h4>
