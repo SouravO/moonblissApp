@@ -69,12 +69,12 @@ const Onboarding = () => {
         <IonContent
           fullscreen
           className="min-h-screen"
-          style={{ "--background": "#ff3ca3", background: "#ff3ca3" }}
+          style={{ "--background": "#1a43bf", background: "#1a43bf" }}
         >
           {step === "login" ? (
             <div className="relative min-h-screen w-full overflow-hidden">
               {/* Animated gradient background - lightweight CSS replacement for Silk */}
-              <div className="absolute inset-0 z-0 bg-gradient-to-br from-purple-600 via-pink-500 to-purple-700 opacity-40 animate-pulse" />
+              <div className="absolute inset-0 z-0 bg-gradient-to-br from-blue-600 via-blue-500 to-blue-700 opacity-40 animate-pulse" />
               
               {/* Soft noise overlay */}
               <div className="absolute inset-0 z-[0.5] mix-blend-overlay opacity-30"
@@ -117,16 +117,16 @@ const Onboarding = () => {
                 <div className="w-full max-w-[460px]">
                   <div className="relative group">
                     {/* animated gradient border */}
-                    <div className="absolute -inset-[1px] rounded-[26px] bg-[conic-gradient(from_180deg_at_50%_50%,#ff3ca3,rgba(255,255,255,0.65),#7c3aed,#22c55e,#ff3ca3)] opacity-70 blur-[10px] group-hover:opacity-95 transition duration-500 animate-[spinSlow_8s_linear_infinite]" />
+                    <div className="absolute -inset-[1px] rounded-[26px] bg-[conic-gradient(from_180deg_at_50%_50%,#1a43bf,rgba(255,255,255,0.65),#3b82f6,#60a5fa,#1a43bf)] opacity-70 blur-[10px] group-hover:opacity-95 transition duration-500 animate-[spinSlow_8s_linear_infinite]" />
                     <div className="absolute -inset-[1.5px] rounded-[26px] bg-[linear-gradient(135deg,rgba(255,255,255,0.55),rgba(255,255,255,0.10))] opacity-60" />
 
                     {/* actual card */}
                     <div className="relative rounded-[26px] border border-white/30 bg-white/12 backdrop-blur-[18px] shadow-[0_26px_90px_rgba(0,0,0,0.35)] overflow-hidden animate-[pop_560ms_cubic-bezier(.2,.9,.2,1)_both]">
                       {/* aurora wash */}
                       <div className="pointer-events-none absolute inset-0 opacity-70">
-                        <div className="absolute -left-16 top-0 h-56 w-56 rounded-full bg-white/25 blur-3xl animate-[orb_7.5s_ease-in-out_infinite]" />
-                        <div className="absolute -right-20 top-10 h-64 w-64 rounded-full bg-fuchsia-200/35 blur-3xl animate-[orb_9.5s_ease-in-out_infinite]" />
-                        <div className="absolute left-1/3 -bottom-24 h-72 w-72 rounded-full bg-violet-200/30 blur-3xl animate-[orb_10.5s_ease-in-out_infinite]" />
+                        <div className="absolute -left-16 top-0 h-56 w-56 rounded-full bg-blue-300/25 blur-3xl animate-[orb_7.5s_ease-in-out_infinite]" />
+                        <div className="absolute -right-20 top-10 h-64 w-64 rounded-full bg-blue-200/35 blur-3xl animate-[orb_9.5s_ease-in-out_infinite]" />
+                        <div className="absolute left-1/3 -bottom-24 h-72 w-72 rounded-full bg-blue-300/30 blur-3xl animate-[orb_10.5s_ease-in-out_infinite]" />
                       </div>
 
                       <div className="relative p-5 md:p-6">
@@ -173,7 +173,7 @@ const Onboarding = () => {
                               </label>
 
                               <div className="pointer-events-none absolute left-4 right-4 bottom-[10px] h-[2px] rounded-full bg-white/10 overflow-hidden">
-                                <div className="h-full w-0 bg-[linear-gradient(90deg,rgba(255,60,163,0.0),rgba(255,60,163,0.9),rgba(255,255,255,0.8),rgba(255,60,163,0.0))] peer-focus:w-full transition-all duration-500" />
+                                <div className="h-full w-0 bg-[linear-gradient(90deg,rgba(26,67,191,0.0),rgba(26,67,191,0.9),rgba(255,255,255,0.8),rgba(26,67,191,0.0))] peer-focus:w-full transition-all duration-500" />
                               </div>
                             </div>
 
@@ -221,7 +221,7 @@ const Onboarding = () => {
                               </button>
 
                               <div className="pointer-events-none absolute left-4 right-4 bottom-[10px] h-[2px] rounded-full bg-white/10 overflow-hidden">
-                                <div className="h-full w-0 bg-[linear-gradient(90deg,rgba(255,60,163,0.0),rgba(255,60,163,0.9),rgba(255,255,255,0.8),rgba(255,60,163,0.0))] peer-focus:w-full transition-all duration-500" />
+                                <div className="h-full w-0 bg-[linear-gradient(90deg,rgba(26,67,191,0.0),rgba(26,67,191,0.9),rgba(255,255,255,0.8),rgba(26,67,191,0.0))] peer-focus:w-full transition-all duration-500" />
                               </div>
                             </div>
 
@@ -246,8 +246,8 @@ const Onboarding = () => {
                           onClick={handleLogin}
                           disabled={!email.trim() || !password.trim() || isSubmitting}
                           className="relative mt-5 w-full h-[54px] rounded-[18px] font-extrabold text-white
-                                     bg-[linear-gradient(135deg,#ff3ca3,rgba(255,255,255,0.35),#ff6bd1)]
-                                     shadow-[0_18px_44px_rgba(255,60,163,0.30)]
+                                     bg-[linear-gradient(135deg,#1a43bf,rgba(255,255,255,0.35),#3b82f6)]
+                                     shadow-[0_18px_44px_rgba(26,67,191,0.30)]
                                      transition
                                      hover:-translate-y-[1px] hover:brightness-[1.05]
                                      active:translate-y-0

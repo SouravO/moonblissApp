@@ -42,8 +42,11 @@ const FloatingImage = React.memo(
       const blur =
         distanceFromCenter > 30 ? Math.min(2, distanceFromCenter / 80) : 0;
 
+      // 360° rotation effect based on drag offset
+      const rotationAngle = (dragOffset / containerWidth) * 360;
+
       return {
-        transform: `translateX(calc(-50% + ${totalOffset}px)) translateY(-50%) scale(${scale})`,
+        transform: `translateX(calc(-50% + ${totalOffset}px)) translateY(-50%) scale(${scale}) rotateZ(${rotationAngle}deg)`,
         opacity,
         filter: blur > 0 ? `blur(${blur}px)` : "none",
         zIndex: 100 - Math.abs(position),
@@ -101,9 +104,11 @@ const ComprehensiveQuestionnaireModal = ({ isOpen, onClose, onComplete }) => {
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [containerWidth, setContainerWidth] = useState(360);
+  const [rotation, setRotation] = useState(0);
 
   // Touch handling refs
   const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
   const containerRef = useRef(null);
 
   // Track container width for responsive image positioning
@@ -298,8 +303,8 @@ const ComprehensiveQuestionnaireModal = ({ isOpen, onClose, onComplete }) => {
       case "select":
       case "radio":
         return (
-          <div className="flex flex-wrap justify-center gap-2">
-            {currentQuestion.options?.map((option) => {
+          <div className="flex flex-wrap justify-center gap-3 sm:gap-3">
+            {currentQuestion.options?.map((option, idx) => {
               const isSelected = value === option.value;
               return (
                 <button
@@ -307,13 +312,28 @@ const ComprehensiveQuestionnaireModal = ({ isOpen, onClose, onComplete }) => {
                   onClick={() =>
                     handleAnswerChange(currentQuestion.id, option.value, true)
                   }
-                  className={`px-5 py-2.5 rounded-full font-medium text-sm transition-all duration-200 ${
+                  className={`relative px-6 sm:px-7 py-3.5 sm:py-3 rounded-[20px] sm:rounded-2xl font-bold text-sm sm:text-sm transition-all duration-300 overflow-hidden group active:scale-95 transform ${
                     isSelected
-                      ? "bg-gray-900 text-white shadow-lg scale-105"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      ? "bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 text-white shadow-2xl shadow-blue-600/60 scale-105"
+                      : "bg-white border-2.5 border-blue-200 text-blue-700 hover:border-blue-500 hover:bg-blue-50 hover:shadow-lg hover:shadow-blue-200/50"
                   }`}
+                  style={{
+                    animation: isSelected ? `popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both` : `slideUp 0.3s ease-out both`,
+                    animationDelay: `${idx * 0.05}s`,
+                  }}
                 >
-                  {option.label}
+                  {/* Animated shine effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/40 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                  
+                  {/* Pulse background for selected */}
+                  {isSelected && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 opacity-20 animate-pulse" />
+                  )}
+                  
+                  <span className="relative z-10 flex items-center gap-2">
+                    {isSelected && <span className="text-lg">✓</span>}
+                    {option.label}
+                  </span>
                 </button>
               );
             })}
@@ -322,8 +342,8 @@ const ComprehensiveQuestionnaireModal = ({ isOpen, onClose, onComplete }) => {
 
       case "multiselect":
         return (
-          <div className="flex flex-wrap justify-center gap-2">
-            {currentQuestion.options?.map((option) => {
+          <div className="flex flex-wrap justify-center gap-3 sm:gap-3">
+            {currentQuestion.options?.map((option, idx) => {
               const isSelected = (value || []).includes(option.value);
               return (
                 <button
@@ -337,13 +357,28 @@ const ComprehensiveQuestionnaireModal = ({ isOpen, onClose, onComplete }) => {
                     }
                     handleAnswerChange(currentQuestion.id, newValue, false);
                   }}
-                  className={`px-5 py-2.5 rounded-full font-medium text-sm transition-all duration-200 ${
+                  className={`relative px-6 sm:px-7 py-3.5 sm:py-3 rounded-[20px] sm:rounded-2xl font-bold text-sm sm:text-sm transition-all duration-300 overflow-hidden group active:scale-95 transform ${
                     isSelected
-                      ? "bg-gray-900 text-white shadow-lg scale-105"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      ? "bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 text-white shadow-2xl shadow-blue-600/60 scale-105"
+                      : "bg-white border-2.5 border-blue-200 text-blue-700 hover:border-blue-500 hover:bg-blue-50 hover:shadow-lg hover:shadow-blue-200/50"
                   }`}
+                  style={{
+                    animation: isSelected ? `popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both` : `slideUp 0.3s ease-out both`,
+                    animationDelay: `${idx * 0.05}s`,
+                  }}
                 >
-                  {option.label}
+                  {/* Animated shine effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/40 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                  
+                  {/* Pulse background for selected */}
+                  {isSelected && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 opacity-20 animate-pulse" />
+                  )}
+                  
+                  <span className="relative z-10 flex items-center gap-2">
+                    {isSelected && <span className="text-lg">✓</span>}
+                    {option.label}
+                  </span>
                 </button>
               );
             })}
@@ -366,7 +401,7 @@ const ComprehensiveQuestionnaireModal = ({ isOpen, onClose, onComplete }) => {
               placeholder={currentQuestion.placeholder || "0"}
               min={currentQuestion.min}
               max={currentQuestion.max}
-              className="w-32 px-4 py-3 text-center text-2xl font-bold bg-gray-100 text-gray-900 rounded-2xl border-2 border-gray-200 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="w-32 px-4 py-3 text-center text-2xl font-bold bg-blue-50 text-blue-900 rounded-2xl border-2 border-blue-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
             />
           </div>
         );
@@ -380,7 +415,7 @@ const ComprehensiveQuestionnaireModal = ({ isOpen, onClose, onComplete }) => {
               onChange={(e) =>
                 handleAnswerChange(currentQuestion.id, e.target.value, false)
               }
-              className="px-5 py-3 text-lg font-medium bg-gray-100 text-gray-900 rounded-2xl border-2 border-gray-200 focus:outline-none focus:border-emerald-400"
+              className="px-5 py-3 text-lg font-medium bg-blue-50 text-blue-900 rounded-2xl border-2 border-blue-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
             />
           </div>
         );
@@ -396,7 +431,7 @@ const ComprehensiveQuestionnaireModal = ({ isOpen, onClose, onComplete }) => {
                 handleAnswerChange(currentQuestion.id, e.target.value, false)
               }
               placeholder={currentQuestion.placeholder || "Type here..."}
-              className="w-full px-5 py-3 text-lg text-center bg-gray-100 text-gray-900 placeholder-gray-400 rounded-2xl border-2 border-gray-200 focus:outline-none focus:border-emerald-400"
+              className="w-full px-5 py-3 text-lg text-center bg-blue-50 text-blue-900 placeholder-blue-400 rounded-2xl border-2 border-blue-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
             />
           </div>
         );
@@ -416,7 +451,7 @@ const ComprehensiveQuestionnaireModal = ({ isOpen, onClose, onComplete }) => {
   const isLast = currentQuestionIndex === totalQuestions - 1;
 
   return (
-    <div className="fixed inset-0 z-50 bg-emerald-500 overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-blue-600 overflow-hidden">
       {/* Top Half - Header + Progress + Image Carousel (50% height) */}
       <div className="h-[50vh] flex flex-col">
         {/* Header */}
@@ -515,16 +550,103 @@ const ComprehensiveQuestionnaireModal = ({ isOpen, onClose, onComplete }) => {
           )}
 
           {/* Input area */}
-          <div className="mb-3 sm:mb-4">{renderInput()}</div>
+          <div className="mb-6 sm:mb-5">{renderInput()}</div>
 
           {/* Action button */}
           <button
             onClick={isLast ? handleSubmit : handleNext}
             disabled={isSubmitting}
-            className="w-full py-3 sm:py-3.5 bg-gray-900 text-white text-sm sm:text-base font-semibold rounded-2xl transition-all duration-200 hover:bg-gray-800 active:scale-[0.98] disabled:opacity-50 shadow-lg"
+            className="relative w-full py-4 sm:py-3.5 bg-gradient-to-r from-blue-600 via-blue-600 to-blue-700 text-white text-sm sm:text-base font-black rounded-[24px] sm:rounded-2xl transition-all duration-300 hover:shadow-2xl hover:shadow-blue-600/60 hover:-translate-y-1.5 active:translate-y-0 active:scale-95 disabled:opacity-50 disabled:hover:shadow-none disabled:hover:translate-y-0 shadow-xl shadow-blue-600/50 overflow-hidden group"
           >
-            {isSubmitting ? "Saving..." : isLast ? "Complete" : "Continue"}
+            {/* Animated shine effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 animate-shimmer" />
+            
+            {/* Glow effect */}
+            <div className="absolute inset-0 rounded-[24px] sm:rounded-2xl bg-blue-500 opacity-0 group-hover:opacity-20 blur-lg transition-opacity duration-300" />
+            
+            <span className="relative z-10 flex items-center justify-center gap-2.5">
+              {isSubmitting ? (
+                <>
+                  <span className="inline-block animate-spin text-lg">⚙️</span>
+                  <span>Saving...</span>
+                </>
+              ) : isLast ? (
+                <>
+                  <span className="text-lg animate-bounce">✓</span>
+                  <span>Complete</span>
+                </>
+              ) : (
+                <>
+                  <span>Continue</span>
+                  <span className="inline-block animate-pulse">→</span>
+                </>
+              )}
+            </span>
           </button>
+
+          {/* Animated decorative elements below button */}
+          <div className="mt-4 sm:mt-3 flex justify-center items-center gap-1.5">
+            {[...Array(3)].map((_, i) => (
+              <div
+                key={i}
+                className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-blue-400 to-blue-600"
+                style={{
+                  animation: `float 2s ease-in-out infinite`,
+                  animationDelay: `${i * 0.2}s`,
+                  opacity: 0.6,
+                }}
+              />
+            ))}
+          </div>
+
+          <style>{`
+            @keyframes popIn {
+              0% {
+                transform: scale(0.6);
+                opacity: 0;
+              }
+              50% {
+                transform: scale(1.15);
+              }
+              100% {
+                transform: scale(1);
+                opacity: 1;
+              }
+            }
+
+            @keyframes slideUp {
+              0% {
+                transform: translateY(10px);
+                opacity: 0;
+              }
+              100% {
+                transform: translateY(0);
+                opacity: 1;
+              }
+            }
+
+            @keyframes float {
+              0%, 100% {
+                transform: translateY(0px);
+              }
+              50% {
+                transform: translateY(-8px);
+              }
+            }
+
+            @keyframes shimmer {
+              0% {
+                transform: translateX(-100%);
+              }
+              100% {
+                transform: translateX(100%);
+              }
+            }
+
+            .animate-shimmer {
+              animation: shimmer 3s infinite;
+            }
+          `}</style>
         </div>
 
         {/* Safe area padding for iOS */}
