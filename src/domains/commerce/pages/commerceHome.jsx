@@ -292,7 +292,7 @@ const CommerceHome = () => {
             {/* Hero + carousel */}
             <div className="relative p-4">
               <div className="relative rounded-[22px] overflow-hidden bg-white/5 ring-1 ring-white/10">
-                <div className="relative h-64">
+                <div className="relative w-full aspect-square">
                   <div
                     className="flex transition-transform duration-500 ease-out h-full"
                     style={{ transform: `translateX(-${currentSlide * 100}%)` }}

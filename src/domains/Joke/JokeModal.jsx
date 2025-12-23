@@ -1,39 +1,18 @@
+// JokeModal.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { IonIcon } from "@ionic/react";
-import {
-  closeOutline,
-  refreshOutline,
-  heartOutline,
-  heart,
-  shareOutline,
-  happyOutline,
-} from "ionicons/icons";
 
 /**
- * BLISSS: General + period-support assistant (client-side)
- *
- * Free sources used (no API keys):
- * 1) Local curated knowledge base (offline, instant)
- * 2) Wikipedia REST summary endpoint (general concepts/terms)
- * 3) DuckDuckGo Instant Answer API (basic facts + topic summaries)
- *
- * Safety:
- * - Blocks sensitive topics (self-harm, sexual content involving minors, etc.)
- * - Medical: general info only. Shows red flags for urgent care.
- * - No personal data required.
- *
- * Persistence:
- * - Stores chat history + liked answers + mini profile in localStorage.
+ * BlueGPT: single-file "AI assistant" modal/page component (Tailwind) using free sources.
+ * Free sources (no keys): Wikipedia REST + Open-Meteo.
+ * Stores chat in localStorage.
  */
 
-const STORAGE_KEY = "blisss_chat_v2";
-const LIKED_KEY = "blisss_liked_v2";
-const PROFILE_KEY = "blisss_profile_v2";
+const STORAGE_KEY = "bluegpt_chat_v1";
 
-const nowTs = () => new Date().toISOString();
-const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+const nowISO = () => new Date().toISOString();
+const cx = (...xs) => xs.filter(Boolean).join(" ");
 
-const safeJsonParse = (s, fallback) => {
+const safeJson = (s, fallback) => {
   try {
     const v = JSON.parse(s);
     return v ?? fallback;
@@ -42,1038 +21,865 @@ const safeJsonParse = (s, fallback) => {
   }
 };
 
-const normalize = (t) =>
-  (t || "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
+const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const hasAny = (text, arr) => arr.some((k) => text.includes(k));
-const formatBullets = (items) => items.map((x) => `• ${x}`).join("\n");
-
-/* -------------------------------
-   Quick chips (broader now)
--------------------------------- */
-const QUICK_CHIPS = [
-  { label: "Bad cramps", q: "I have bad period cramps. What can I do?" },
-  { label: "Heavy bleeding", q: "My bleeding is heavy. When is it concerning?" },
-  { label: "Late period", q: "My period is late. What are possible reasons?" },
-  { label: "Mood swings", q: "I feel very emotional before periods. Tips?" },
-  { label: "Food cravings", q: "I crave sugar before periods. Any food tips?" },
-  { label: "Sleep", q: "How can I sleep better during periods?" },
-  { label: "Science", q: "Explain black holes in simple terms." },
-  { label: "Study help", q: "Make a 7-day study plan for biology." },
-];
-
-/* -------------------------------
-   Safety: Sensitive topic filter
--------------------------------- */
-const SENSITIVE = {
-  selfHarm: [
-    "kill myself",
-    "suicide",
-    "self harm",
-    "self-harm",
-    "cut myself",
-    "end my life",
-    "want to die",
-  ],
-  minorsSexual: ["child porn", "underage sex", "minor nude", "nude minor"],
-  explicitSex: ["porn", "sex video", "nudes", "onlyfans", "blowjob"],
-  illegal: ["how to make a bomb", "make a bomb", "buy cocaine", "sell drugs"],
-};
-
-function checkSensitive(text) {
-  const t = normalize(text);
-  if (hasAny(t, SENSITIVE.minorsSexual)) return { block: true, type: "minorsSexual" };
-  if (hasAny(t, SENSITIVE.illegal)) return { block: true, type: "illegal" };
-  if (hasAny(t, SENSITIVE.selfHarm)) return { block: true, type: "selfHarm" };
-  // Allow general sex-ed questions, but block explicit porn requests
-  if (hasAny(t, SENSITIVE.explicitSex)) return { block: true, type: "explicitSex" };
-  return { block: false, type: null };
+function useAutosizeTextarea(value) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "0px";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+  return ref;
 }
 
-function sensitiveReply(type) {
-  if (type === "selfHarm") {
-    return {
-      text:
-        "I can’t help with self-harm requests.\n\nIf you feel at risk right now, seek urgent help:\n• Call your local emergency number\n• Reach out to a trusted person nearby\n• If you are in India: AASRA 24/7 helpline: +91-22-27546669\n\nIf you want, tell me what you’re feeling in plain words and I can help you find safer next steps.",
-      sources: [],
-    };
+function formatTime(ts) {
+  try {
+    const d = new Date(ts);
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return "";
   }
-  if (type === "minorsSexual") {
-    return { text: "I can’t help with any sexual content involving minors.", sources: [] };
-  }
-  if (type === "illegal") {
-    return { text: "I can’t help with illegal wrongdoing. Ask for legal, safe alternatives.", sources: [] };
-  }
-  if (type === "explicitSex") {
-    return {
-      text: "I can’t help with explicit sexual content. If you want, ask a health or relationship question in non-explicit terms.",
-      sources: [],
-    };
-  }
-  return { text: "I can’t help with that request.", sources: [] };
 }
 
-/* -------------------------------
-   Period red flags (kept)
--------------------------------- */
-const RED_FLAGS = [
-  "soaking through a pad/tampon every hour for 2+ hours",
-  "fainting, severe dizziness, or signs of shock",
-  "severe one-sided pelvic pain with nausea/vomiting",
-  "fever with pelvic pain or foul-smelling discharge",
-  "sudden severe pain or pain after a missed period",
-  "bleeding between periods or after sex repeatedly",
-  "period pain that is new and very intense",
-];
-
-/* -------------------------------
-   Local knowledge base (expanded)
--------------------------------- */
-const KB = [
+/* ---------------------- Local mini KB ---------------------- */
+const LOCAL_KB = [
   {
-    id: "cramps",
-    match: (t) =>
-      hasAny(t, [
-        "cramp",
-        "cramps",
-        "period pain",
-        "painful period",
-        "dysmenorrhea",
-        "stomach pain",
-        "lower belly pain",
-      ]),
-    title: "Cramps support",
-    answer: ({ profile }) => {
-      const dur = profile?.periodDurationDays || null;
-      const cycle = profile?.cycleLengthDays || null;
-
-      const selfCare = [
-        "Heat: hot water bag or warm shower for 15–20 min.",
-        "Gentle movement: short walk, light stretching, yoga.",
-        "Hydration and warm fluids.",
-        "Magnesium-rich foods (nuts, leafy greens).",
-        "Sleep and reduce caffeine if it worsens symptoms.",
-      ];
-
-      const meds = [
-        "If you can take them: NSAIDs like ibuprofen can help cramps when taken early (follow label).",
-        "Avoid mixing medicines. Do not exceed dose limits on the pack.",
-        "If you have ulcers, kidney disease, are on blood thinners, or are pregnant, ask a clinician first.",
-      ];
-
-      const whenConcerned = [
-        "Pain that stops you from normal activity every cycle.",
-        "Pain that suddenly got much worse than usual.",
-        "Pain with fever, vomiting, fainting, or severe one-sided pain.",
-      ];
-
-      const context = [];
-      if (cycle) context.push(`Noted: cycle length ${cycle} days.`);
-      if (dur) context.push(`Noted: period duration ${dur} days.`);
-
-      return [
-        `Here are practical ways to reduce cramps:`,
-        formatBullets(selfCare),
-        "",
-        `Medicine options (general info):`,
-        formatBullets(meds),
-        "",
-        `When to get medical help:`,
-        formatBullets(whenConcerned),
-        context.length ? "" : null,
-        context.length ? context.join(" ") : null,
-      ]
-        .filter(Boolean)
-        .join("\n");
-    },
-    sourcesHint: ["Wikipedia: Dysmenorrhea (optional lookup)"],
-    wikiTerms: ["Dysmenorrhea"],
+    keys: ["period", "cramp", "menstrual", "mens", "menstruation", "pms"],
+    title: "Period basics",
+    answer:
+      "Periods are normal uterine bleeding as part of the menstrual cycle. Cramps are usually caused by prostaglandins.\n\nTry: heat pad, gentle movement, hydration, sleep, and OTC pain relief if safe for you.\n\nSeek urgent care if: severe sudden pain, fainting, heavy bleeding soaking 1+ pad/hour for 2+ hours, pregnancy possibility, fever, or symptoms that feel alarming.",
   },
   {
-    id: "heavy_bleeding",
-    match: (t) =>
-      hasAny(t, [
-        "heavy",
-        "soaking",
-        "flooding",
-        "too much blood",
-        "menorrhagia",
-        "pads every hour",
-        "tampon every hour",
-      ]),
-    title: "Heavy bleeding guidance",
-    answer: () => {
-      const normalVsConcern = [
-        "Some variation is normal. Flow is usually heaviest on day 1–2.",
-        "Concerning signs: soaking through a pad/tampon every hour for 2+ hours, large clots repeatedly, dizziness, shortness of breath, fainting.",
-        "If heavy flow lasts >7 days often, or you feel tired/pale, consider anemia screening.",
-      ];
-      const immediateSteps = [
-        "Track: how many pads/tampons per day and for how many hours you soak through.",
-        "Hydrate. Rest.",
-        "If you feel faint, have chest pain, or cannot stay upright, seek urgent care.",
-      ];
-      return [
-        `Heavy bleeding can happen, but some patterns need quick attention.`,
-        "",
-        `What’s normal vs concerning:`,
-        formatBullets(normalVsConcern),
-        "",
-        `What to do now:`,
-        formatBullets(immediateSteps),
-        "",
-        `If you want, tell me: how many pads/tampons per hour, how many days, and any dizziness.`,
-      ].join("\n");
-    },
-    sourcesHint: ["Wikipedia: Menorrhagia (optional lookup)"],
-    wikiTerms: ["Menorrhagia"],
+    keys: ["hydration", "water", "drink"],
+    title: "Hydration",
+    answer:
+      "Sip regularly. If urine is very dark or you feel dizzy, increase fluids and consider electrolytes. If you have kidney/heart conditions, follow clinician guidance.",
   },
   {
-    id: "late_period",
-    match: (t) =>
-      hasAny(t, [
-        "late",
-        "missed period",
-        "period not coming",
-        "no period",
-        "delayed",
-        "spotting",
-      ]),
-    title: "Late period reasons",
-    answer: ({ profile }) => {
-      const cycle = profile?.cycleLengthDays || 28;
-      const reasons = [
-        "Pregnancy (if sexually active).",
-        "Stress, travel, sleep disruption.",
-        "Sudden weight changes or intense exercise.",
-        "Hormonal conditions like PCOS or thyroid issues.",
-        "Recent illness or medications.",
-      ];
-      const nextSteps = [
-        "If pregnancy is possible: consider a home test.",
-        "Track dates: last period start date, usual cycle length.",
-        "If you miss 2+ cycles (and not pregnant) or have severe pain, see a clinician.",
-      ];
-      return [
-        `A late period is common. Typical cycle range varies.`,
-        "",
-        `Common reasons:`,
-        formatBullets(reasons),
-        "",
-        `Next steps:`,
-        formatBullets(nextSteps),
-        "",
-        `Your stored cycle length looks like ~${cycle} days (if that’s correct). Want to share your last period start date?`,
-      ].join("\n");
-    },
-    sourcesHint: [
-      "Wikipedia: Menstrual cycle (optional lookup)",
-      "Wikipedia: Polycystic ovary syndrome (optional lookup)",
-    ],
-    wikiTerms: ["Menstrual cycle", "Polycystic ovary syndrome"],
-  },
-  {
-    id: "mood_pms",
-    match: (t) =>
-      hasAny(t, [
-        "mood",
-        "mood swings",
-        "irritable",
-        "sad",
-        "anxiety",
-        "pms",
-        "pmdd",
-        "stress",
-        "overthinking",
-      ]),
-    title: "Mood support",
-    answer: () => {
-      const tips = [
-        "Stabilize blood sugar: regular meals, protein + fiber.",
-        "Light movement daily.",
-        "Reduce caffeine/alcohol if it worsens anxiety.",
-        "Sleep: consistent schedule for 5–7 days.",
-        "Breathing: 4-7-8 breathing for 3 minutes.",
-        "If it helps: write a 2-minute brain dump then pick 1 small next action.",
-      ];
-      const whenHelp = [
-        "If symptoms severely impact work/relationships.",
-        "If you feel hopeless or have thoughts of self-harm. Seek urgent help.",
-        "If symptoms are predictable monthly and intense: ask about PMDD support.",
-      ];
-      return [
-        `Mood changes can happen with PMS or stress. Practical steps:`,
-        "",
-        formatBullets(tips),
-        "",
-        `When to get extra support:`,
-        formatBullets(whenHelp),
-      ].join("\n");
-    },
-    sourcesHint: [
-      "Wikipedia: Premenstrual syndrome (optional lookup)",
-      "Wikipedia: Premenstrual dysphoric disorder (optional lookup)",
-    ],
-    wikiTerms: ["Premenstrual syndrome", "Premenstrual dysphoric disorder"],
-  },
-  {
-    id: "food_nutrition",
-    match: (t) =>
-      hasAny(t, [
-        "food",
-        "diet",
-        "nutrition",
-        "craving",
-        "cravings",
-        "what should i eat",
-        "meal plan",
-        "protein",
-        "iron",
-        "hydration",
-      ]),
-    title: "Food and nutrition support",
-    answer: () => {
-      const basics = [
-        "Protein each meal (eggs, dal, tofu, chicken, yogurt).",
-        "Fiber + color (vegetables, fruits).",
-        "Iron sources if heavy flow: spinach, lentils, beans, meat. Pair with vitamin C (lemon, amla) for absorption.",
-        "Hydration: water + electrolytes if you feel weak.",
-        "Limit very sugary spikes if you crash after.",
-      ];
-      const simpleDay = [
-        "Breakfast: idli/dosa + sambar OR oats + yogurt + fruit.",
-        "Lunch: rice/roti + dal + veg + curd.",
-        "Snack: nuts + fruit OR chana.",
-        "Dinner: roti + paneer/tofu + veg soup.",
-      ];
-      return [
-        `Food tips (general):`,
-        "",
-        formatBullets(basics),
-        "",
-        `Simple sample day:`,
-        formatBullets(simpleDay),
-        "",
-        `Tell me your goal (energy, cramps, weight loss, muscle, anemia) and cuisine preference.`,
-      ].join("\n");
-    },
-    sourcesHint: ["Wikipedia: Iron deficiency anemia (optional lookup)"],
-    wikiTerms: ["Iron deficiency anemia"],
-  },
-  {
-    id: "science_explain",
-    match: (t) =>
-      hasAny(t, [
-        "explain",
-        "what is",
-        "define",
-        "meaning of",
-        "science",
-        "physics",
-        "chemistry",
-        "biology",
-        "black hole",
-        "quantum",
-        "dna",
-      ]),
-    title: "Explain a concept",
-    answer: () => {
-      return [
-        `Ask your concept in 1 line and tell me your level:`,
-        formatBullets(["School", "College", "Beginner adult", "Advanced"]),
-        "",
-        `I will answer in:`,
-        formatBullets(["Simple explanation", "Analogy", "Key facts", "Common misconceptions", "2 sources"]),
-      ].join("\n");
-    },
-    sourcesHint: [],
-    wikiTerms: [],
-  },
-  {
-    id: "general_help",
-    match: () => true,
-    title: "General assistant",
-    answer: () => {
-      const options = [
-        "Periods: cramps, heavy bleeding, late period, mood swings",
-        "Food: meal ideas, cravings, nutrition basics",
-        "Mood: stress, anxiety, routines",
-        "Science: explain concepts, quick study plans",
-        "Productivity: plans, checklists, summaries",
-      ];
-      return [
-        `Ask any non-sensitive question. I’ll answer with free public sources when useful.`,
-        "",
-        `Common topics:`,
-        formatBullets(options),
-        "",
-        `Tip: If you ask about a specific term (example: “endometriosis”, “black hole”), I can fetch a short public summary.`,
-      ].join("\n");
-    },
-    sourcesHint: [],
-    wikiTerms: [],
+    keys: ["panic", "anxiety", "stress"],
+    title: "Stress reset",
+    answer:
+      "Try a 60-second reset: inhale 4 seconds, exhale 6 seconds, repeat 6 times. Reduce caffeine, hydrate, and step away from screens briefly.",
   },
 ];
 
-/* -------------------------------
-   Free sources: Wikipedia + DDG
--------------------------------- */
-async function fetchWikipediaSummary(term) {
-  const t = (term || "").trim();
-  if (!t) return null;
+/* ---------------------- Routing ---------------------- */
+function detectIntent(q) {
+  const s = q.toLowerCase().trim();
+  const weatherRe =
+    /(weather|temperature|forecast|rain|wind|humidity)\s+(in|at|for)\s+(.+)/i;
+  const m = s.match(weatherRe);
+  if (m && m[3]) return { type: "weather", location: m[3].trim() };
 
-  const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(t)}`;
-  const res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } });
-  if (!res.ok) return null;
+  const wikiCue =
+    s.startsWith("who is ") ||
+    s.startsWith("what is ") ||
+    s.startsWith("define ") ||
+    s.startsWith("meaning of ") ||
+    s.startsWith("tell me about ") ||
+    s.startsWith("explain ");
+  if (wikiCue) return { type: "wiki" };
 
+  return { type: "auto" };
+}
+
+/* ---------------------- Wikipedia (free) ---------------------- */
+async function wikiSearch(query, signal) {
+  const url =
+    "https://en.wikipedia.org/w/api.php?" +
+    new URLSearchParams({
+      action: "query",
+      list: "search",
+      srsearch: query,
+      format: "json",
+      origin: "*",
+      srlimit: "5",
+    }).toString();
+
+  const res = await fetch(url, { signal });
+  if (!res.ok) throw new Error("Wikipedia search failed");
   const data = await res.json();
-  const extract = data?.extract || "";
-  const page = data?.content_urls?.desktop?.page || "";
-  const title = data?.title || t;
-  if (!extract) return null;
-
-  return { title, extract, url: page, source: "Wikipedia" };
+  const hits = data?.query?.search ?? [];
+  return hits.map((h) => ({
+    title: h.title,
+    snippet: (h.snippet || "").replace(/<\/?[^>]+(>|$)/g, ""),
+  }));
 }
 
-async function fetchDuckDuckGoInstantAnswer(query) {
-  const q = (query || "").trim();
-  if (!q) return null;
-
-  const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(
-    q
-  )}&format=json&no_redirect=1&no_html=1&skip_disambig=0`;
-
-  const res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } });
-  if (!res.ok) return null;
-
+async function wikiSummary(titleOrQuery, signal) {
+  const title = encodeURIComponent(titleOrQuery.replaceAll(" ", "_"));
+  const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${title}`;
+  const res = await fetch(url, {
+    signal,
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error("Wikipedia summary failed");
   const data = await res.json();
-  const abstractText = data?.AbstractText || "";
-  const abstractURL = data?.AbstractURL || "";
-  const heading = data?.Heading || "";
-
-  if (!abstractText) return null;
-
   return {
-    title: heading || q,
-    extract: abstractText,
-    url: abstractURL || "",
-    source: "DuckDuckGo",
+    title: data?.title || titleOrQuery,
+    extract: data?.extract || "",
+    url: data?.content_urls?.desktop?.page || "",
+    thumbnail: data?.thumbnail?.source || "",
   };
 }
 
-/* -------------------------------
-   Query routing for sources
--------------------------------- */
-function looksLikeGeneralInfoQuestion(tnorm) {
+/* ---------------------- Open-Meteo (free) ---------------------- */
+async function geoLookup(name, signal) {
+  const url =
+    "https://geocoding-api.open-meteo.com/v1/search?" +
+    new URLSearchParams({
+      name,
+      count: "1",
+      language: "en",
+      format: "json",
+    }).toString();
+  const res = await fetch(url, { signal });
+  if (!res.ok) throw new Error("Geocoding failed");
+  const data = await res.json();
+  const r = data?.results?.[0];
+  if (!r) return null;
+  return {
+    name: [r.name, r.admin1, r.country].filter(Boolean).join(", "),
+    lat: r.latitude,
+    lon: r.longitude,
+  };
+}
+
+async function weatherNow(lat, lon, signal) {
+  const url =
+    "https://api.open-meteo.com/v1/forecast?" +
+    new URLSearchParams({
+      latitude: String(lat),
+      longitude: String(lon),
+      current:
+        "temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m",
+      hourly: "precipitation_probability",
+      forecast_days: "1",
+      timezone: "auto",
+    }).toString();
+
+  const res = await fetch(url, { signal });
+  if (!res.ok) throw new Error("Weather fetch failed");
+  const data = await res.json();
+  const c = data?.current || {};
+  const hourly = data?.hourly || {};
+  const p0 = Array.isArray(hourly.precipitation_probability)
+    ? hourly.precipitation_probability[0]
+    : null;
+
+  return {
+    temp: c.temperature_2m,
+    feels: c.apparent_temperature,
+    humid: c.relative_humidity_2m,
+    wind: c.wind_speed_10m,
+    precipChance: p0,
+    units: data?.current_units || {},
+  };
+}
+
+/* ---------------------- Assistant core ---------------------- */
+function localKbAnswer(q) {
+  const s = q.toLowerCase();
+  const hit = LOCAL_KB.find((item) => item.keys.some((k) => s.includes(k)));
+  if (!hit) return null;
+  return { kind: "local", title: hit.title, text: hit.answer };
+}
+
+async function answerQuestion(q, signal) {
+  const intent = detectIntent(q);
+
+  if (intent.type === "weather") {
+    const place = await geoLookup(intent.location, signal);
+    if (!place) {
+      return {
+        kind: "weather",
+        title: "Weather",
+        text: `I could not find "${intent.location}". Try "weather in Bengaluru".`,
+      };
+    }
+    const w = await weatherNow(place.lat, place.lon, signal);
+    const u = w.units || {};
+    const line1 = `**${place.name}**`;
+    const line2 = `Temperature: **${w.temp}${u.temperature_2m || "°C"}** (feels like **${w.feels}${u.apparent_temperature || "°C"}**)`;
+    const line3 = `Humidity: **${w.humid}${u.relative_humidity_2m || "%"}**, Wind: **${w.wind}${u.wind_speed_10m || " km/h"}**`;
+    const line4 =
+      w.precipChance == null
+        ? ""
+        : `Chance of precipitation (next hour): **${w.precipChance}%**`;
+    return {
+      kind: "weather",
+      title: "Weather report",
+      text: [line1, line2, line3, line4].filter(Boolean).join("\n"),
+    };
+  }
+
+  const kb = localKbAnswer(q);
+  if (kb) return kb;
+
+  if (intent.type === "wiki") {
+    const cleaned = q
+      .replace(/^who is\s+/i, "")
+      .replace(/^what is\s+/i, "")
+      .replace(/^define\s+/i, "")
+      .replace(/^meaning of\s+/i, "")
+      .replace(/^tell me about\s+/i, "")
+      .replace(/^explain\s+/i, "")
+      .trim();
+    try {
+      const s = await wikiSummary(cleaned, signal);
+      if (s.extract) {
+        return {
+          kind: "wiki",
+          title: s.title,
+          text: `${s.extract}\n\nSource: ${s.url || "Wikipedia"}`,
+          meta: { url: s.url, thumbnail: s.thumbnail },
+        };
+      }
+    } catch {
+      // fall through
+    }
+  }
+
+  const hits = await wikiSearch(q, signal);
+  if (!hits.length) {
+    return {
+      kind: "fallback",
+      title: "No direct source found",
+      text:
+        "I did not find a reliable public summary for that query.\n\nTry rephrasing with: `what is ...`, `who is ...`, or ask for weather like: `weather in Kochi`.",
+    };
+  }
+
+  const top = hits[0].title;
+  try {
+    const s = await wikiSummary(top, signal);
+    if (s.extract) {
+      const also = hits
+        .slice(1, 4)
+        .map((h) => `• ${h.title}`)
+        .join("\n");
+      return {
+        kind: "wiki",
+        title: s.title,
+        text: `${s.extract}\n\nRelated:\n${also}\n\nSource: ${s.url || "Wikipedia"}`,
+        meta: { url: s.url, thumbnail: s.thumbnail },
+      };
+    }
+  } catch {
+    // ignore
+  }
+
+  return {
+    kind: "search",
+    title: "Search results",
+    text: "I found these Wikipedia matches:\n\n" + hits.map((h) => `• ${h.title}: ${h.snippet}`).join("\n"),
+  };
+}
+
+/* ---------------------- UI bits ---------------------- */
+function Markdownish({ text }) {
+  const parts = String(text || "").split("\n");
   return (
-    tnorm.startsWith("what is ") ||
-    tnorm.startsWith("define ") ||
-    tnorm.includes("meaning of") ||
-    tnorm.includes("tell me about") ||
-    tnorm.includes("explain ")
-  );
-}
-
-function pickWikiTermsFromUser(text) {
-  const t = normalize(text);
-
-  const TERMS = [
-    "endometriosis",
-    "polycystic ovary syndrome",
-    "pcos",
-    "premenstrual syndrome",
-    "pms",
-    "pmdd",
-    "dysmenorrhea",
-    "menorrhagia",
-    "menstruation",
-    "menstrual cycle",
-    "ovulation",
-    "migraine",
-    "menstrual migraine",
-    "black hole",
-    "photosynthesis",
-    "dna",
-    "atom",
-    "gravity",
-  ];
-
-  const hits = TERMS.filter((k) => t.includes(k));
-  return hits.map((h) => {
-    if (h === "pcos") return "Polycystic ovary syndrome";
-    if (h === "pms") return "Premenstrual syndrome";
-    return h;
-  });
-}
-
-function buildAssistantReply({ text, profile }) {
-  const t = normalize(text);
-
-  const redFlagHit = hasAny(t, [
-    "soaking",
-    "faint",
-    "fainted",
-    "passed out",
-    "severe",
-    "unbearable",
-    "fever",
-    "vomit",
-    "vomiting",
-    "one sided",
-    "one-sided",
-    "chest pain",
-    "shortness of breath",
-    "pregnant",
-    "positive test",
-  ]);
-
-  const kb = KB.find((x) => x.match(t)) || KB[KB.length - 1];
-  const base = kb.answer({ profile });
-
-  const red = redFlagHit
-    ? [
-        "",
-        `⚠️ Red flags: if you have any of these, seek urgent medical care:`,
-        formatBullets(RED_FLAGS),
-      ].join("\n")
-    : "";
-
-  return { kb, text: `${base}${red}` };
-}
-
-/* -------------------------------
-   UI components
--------------------------------- */
-const Bubble = ({ role, children }) => {
-  const isUser = role === "user";
-  return (
-    <div className={`w-full flex ${isUser ? "justify-end" : "justify-start"}`}>
-      <div
-        className={[
-          "max-w-[86%] rounded-2xl px-4 py-3 whitespace-pre-wrap leading-relaxed text-[14px]",
-          isUser
-            ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-600/20"
-            : "bg-slate-800/60 text-slate-100 border border-blue-500/20 backdrop-blur-sm",
-        ].join(" ")}
-      >
-        {children}
-      </div>
+    <div className="space-y-2 leading-relaxed">
+      {parts.map((line, idx) => (
+        <p key={idx} className="whitespace-pre-wrap break-words">
+          {renderBold(line)}
+        </p>
+      ))}
     </div>
   );
-};
+}
 
-const BlisssModal = ({ isOpen, onClose }) => {
-  const [liked, setLiked] = useState({});
-  const [busy, setBusy] = useState(false);
+function renderBold(line) {
+  const out = [];
+  let i = 0;
+  while (i < line.length) {
+    const a = line.indexOf("**", i);
+    if (a === -1) {
+      out.push(line.slice(i));
+      break;
+    }
+    const b = line.indexOf("**", a + 2);
+    if (b === -1) {
+      out.push(line.slice(i));
+      break;
+    }
+    if (a > i) out.push(line.slice(i, a));
+    out.push(
+      <strong key={`${a}-${b}`} className="font-semibold text-white">
+        {line.slice(a + 2, b)}
+      </strong>
+    );
+    i = b + 2;
+  }
+  return out.map((chunk, idx) => <React.Fragment key={idx}>{chunk}</React.Fragment>);
+}
 
-  const [profile, setProfile] = useState(() => {
-    const saved = localStorage.getItem(PROFILE_KEY);
-    return safeJsonParse(saved, { cycleLengthDays: 28, periodDurationDays: 5 });
-  });
+function IconSend(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path
+        d="M3.5 12L20.5 3.5L14 20.5L11.2 13.3L3.5 12Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+function IconSpark(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path
+        d="M12 2l1.2 4.2L17.4 8 13.2 9.2 12 13.4 10.8 9.2 6.6 8l4.2-1.8L12 2z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M19 13l.8 2.8L22 17l-2.2.9L19 20l-.8-2.1L16 17l2.2-1.2L19 13z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+function IconTrash(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path
+        d="M5 7h14M10 7V5.8c0-.9.7-1.6 1.6-1.6h.8c.9 0 1.6.7 1.6 1.6V7"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+      <path
+        d="M8 7l1 14h6l1-14"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+function IconCopy(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path
+        d="M9 9h10v10H9V9Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+function IconClose(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path
+        d="M6 6l12 12M18 6L6 18"
+        stroke="currentColor"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
 
-  const [messages, setMessages] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    const parsed = safeJsonParse(saved, null);
-    if (Array.isArray(parsed) && parsed.length) return parsed;
-
-    return [
+/* ---------------------- Component ---------------------- */
+/**
+ * Usage:
+ * <JokeModal isOpen={isOpen} onClose={() => setOpen(false)} />
+ *
+ * If you want it as a full page, just render it with isOpen=true and ignore onClose.
+ */
+export default function JokeModal({ isOpen = true, open, onClose }) {
+  // Support both 'isOpen' and 'open' props for flexibility
+  const actualOpen = isOpen !== undefined ? isOpen : open;
+  const [messages, setMessages] = useState(() =>
+    safeJson(localStorage.getItem(STORAGE_KEY), [
       {
         id: "m0",
         role: "assistant",
-        ts: nowTs(),
-        text:
-          "Hi. I’m BLISSS.\nAsk any non-sensitive question (periods, mood, food, science, study help).\n\nTip: For health topics, share symptoms + duration + severity.",
-        sources: [],
+        ts: nowISO(),
+        title: "BlueGPT",
+        content:
+          "Ask anything.\n\nTry:\n• **what is quantum computing**\n• **who is Ada Lovelace**\n• **weather in Bengaluru**\n\nFree sources only. Not a full ChatGPT model.",
       },
-    ];
-  });
-
+    ])
+  );
   const [input, setInput] = useState("");
-  const [showQuick, setShowQuick] = useState(true);
+  const [isThinking, setIsThinking] = useState(false);
+  const [toast, setToast] = useState(null);
 
+  const abortRef = useRef(null);
   const listRef = useRef(null);
-  const inputRef = useRef(null);
+  const taRef = useAutosizeTextarea(input);
 
-  useEffect(() => {
-    const saved = localStorage.getItem(LIKED_KEY);
-    const parsed = safeJsonParse(saved, {});
-    setLiked(parsed && typeof parsed === "object" ? parsed : {});
-  }, []);
+  const theme = useMemo(
+    () => ({
+      bg: "from-slate-950 via-blue-950 to-slate-950",
+      card: "bg-white/6 border-white/10",
+      card2: "bg-white/7 border-white/12",
+      glow:
+        "shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_18px_50px_rgba(0,102,255,0.25)]",
+      btn: "bg-sky-500/20 hover:bg-sky-500/28 border-sky-300/20",
+      ring: "focus:ring-2 focus:ring-sky-400/40 focus:outline-none",
+    }),
+    []
+  );
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
   }, [messages]);
 
   useEffect(() => {
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-  }, [profile]);
-
-  // scroll-to-bottom on new message
-  useEffect(() => {
-    if (!isOpen) return;
     const el = listRef.current;
     if (!el) return;
-    requestAnimationFrame(() => {
-      el.scrollTop = el.scrollHeight;
-    });
-  }, [messages, isOpen]);
+    el.scrollTop = el.scrollHeight;
+  }, [messages, isThinking, open]);
 
-  // autofocus input
   useEffect(() => {
-    if (isOpen) setTimeout(() => inputRef.current?.focus?.(), 180);
-  }, [isOpen]);
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 1400);
+    return () => clearTimeout(t);
+  }, [toast]);
 
-  // auto-grow textarea (chatbot feel)
   useEffect(() => {
-    const el = inputRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
-  }, [input]);
+    if (!actualOpen) return;
+    const onEsc = (e) => {
+      if (e.key === "Escape") onClose?.();
+    };
+    window.addEventListener("keydown", onEsc);
+    return () => window.removeEventListener("keydown", onEsc);
+  }, [actualOpen, onClose]);
 
-  const toggleLikeMessage = (msgId) => {
-    const next = { ...liked, [msgId]: !liked[msgId] };
-    if (!next[msgId]) delete next[msgId];
-    setLiked(next);
-    localStorage.setItem(LIKED_KEY, JSON.stringify(next));
-  };
+  const canSend = input.trim().length > 0 && !isThinking;
 
-  const shareLastAssistant = async () => {
-    const last = [...messages].reverse().find((m) => m.role === "assistant");
-    if (!last) return;
+  const pushMessage = (m) =>
+    setMessages((prev) => [...prev, { ...m, id: `${Date.now()}_${Math.random()}` }]);
 
-    const payload = `BLISSS says:\n\n${last.text}\n${
-      last.sources?.length
-        ? `\nSources:\n${last.sources
-            .map((s) => `- ${s.title}${s.url ? `: ${s.url}` : ""}`)
-            .join("\n")}`
-        : ""
-    }`;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "BLISSS", text: payload });
-      } catch {
-        // ignore
+  const updateLastAssistant = (patch) => {
+    setMessages((prev) => {
+      const copy = [...prev];
+      for (let i = copy.length - 1; i >= 0; i--) {
+        if (copy[i].role === "assistant") {
+          copy[i] = { ...copy[i], ...patch };
+          break;
+        }
       }
-    } else {
-      await navigator.clipboard.writeText(payload);
-      alert("Copied to clipboard!");
-    }
+      return copy;
+    });
   };
 
-  const clearChat = () => {
-    const fresh = [
+  async function typeChunk(full) {
+    const minDelay = 8;
+    const maxDelay = 22;
+    let built = "";
+    for (let i = 0; i < full.length; i++) {
+      built += full[i];
+      if (i % 2 === 0 || i < 40) {
+        updateLastAssistant({ content: built, meta: { typing: true } });
+        await sleep(clamp(minDelay + Math.random() * 18, minDelay, maxDelay));
+      }
+    }
+    updateLastAssistant({ content: built, meta: { typing: false } });
+  }
+
+  async function handleSend() {
+    const q = input.trim();
+    if (!q || isThinking) return;
+
+    if (abortRef.current) abortRef.current.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
+
+    pushMessage({ role: "user", ts: nowISO(), content: q });
+    setInput("");
+    setIsThinking(true);
+
+    pushMessage({
+      role: "assistant",
+      ts: nowISO(),
+      title: "BlueGPT",
+      content: "",
+      meta: { typing: true },
+    });
+
+    try {
+      const res = await answerQuestion(q, ac.signal);
+      const header = res.title ? `**${res.title}**\n` : "";
+      const body = res.text || "No answer found.";
+      const final = `${header}\n${body}`.trim();
+      await typeChunk(final);
+      updateLastAssistant({
+        meta: {
+          typing: false,
+          kind: res.kind,
+          url: res?.meta?.url || "",
+          thumbnail: res?.meta?.thumbnail || "",
+        },
+      });
+    } catch (e) {
+      const msg =
+        e?.name === "AbortError"
+          ? "Request cancelled."
+          : "Something failed while fetching free sources. Try again.";
+      await typeChunk(`**Error**\n${msg}`);
+      updateLastAssistant({ meta: { typing: false, kind: "error" } });
+    } finally {
+      setIsThinking(false);
+    }
+  }
+
+  function handleStop() {
+    if (abortRef.current) abortRef.current.abort();
+    setIsThinking(false);
+  }
+
+  function handleClear() {
+    // close the modal 
+    onClose?.();
+    
+    if (abortRef.current) abortRef.current.abort();
+    const seed = [
       {
-        id: `m_${Date.now()}`,
+        id: "m0",
         role: "assistant",
-        ts: nowTs(),
-        text:
-          "Chat cleared.\nAsk anything non-sensitive.\nExample: “Explain photosynthesis” or “Cramps day 1-2, pain 7/10.”",
-        sources: [],
+        ts: nowISO(),
+        title: "BlueGPT",
+        content:
+          "Chat cleared.\n\nTry:\n• **what is blockchain**\n• **who is Marie Curie**\n• **weather in Mumbai**",
       },
     ];
-    setMessages(fresh);
-    setShowQuick(true);
-  };
+    setMessages(seed);
+    setToast("Cleared");
+  }
 
-  const send = async (text) => {
-    const trimmed = (text ?? input).trim();
-    if (!trimmed || busy) return;
-
-    setBusy(true);
-    setShowQuick(false);
-
-    // Safety check first
-    const sensitive = checkSensitive(trimmed);
-    if (sensitive.block) {
-      const blocked = sensitiveReply(sensitive.type);
-      const userMsg = {
-        id: `u_${Date.now()}`,
-        role: "user",
-        ts: nowTs(),
-        text: trimmed,
-        sources: [],
-      };
-      const assistantMsg = {
-        id: `a_${Date.now() + 1}`,
-        role: "assistant",
-        ts: nowTs(),
-        text: blocked.text,
-        sources: blocked.sources || [],
-      };
-      setMessages((prev) => [...prev, userMsg, assistantMsg]);
-      setInput("");
-      setBusy(false);
-      return;
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setToast("Copied");
+    } catch {
+      setToast("Copy failed");
     }
+  }
 
-    const userMsg = {
-      id: `u_${Date.now()}`,
-      role: "user",
-      ts: nowTs(),
-      text: trimmed,
-      sources: [],
-    };
-    setMessages((prev) => [...prev, userMsg]);
-    setInput("");
-
-    // Base response from local KB
-    const { kb, text: baseText } = buildAssistantReply({ text: trimmed, profile });
-
-    // Free-source lookup logic
-    const tnorm = normalize(trimmed);
-    const userTerms = pickWikiTermsFromUser(trimmed);
-
-    const wantsDefinition = looksLikeGeneralInfoQuestion(tnorm);
-    const shouldLookup = userTerms.length > 0 || wantsDefinition;
-
-    let sources = [];
-    let append = "";
-
-    if (shouldLookup) {
-      const termsToTry = [...new Set([...(userTerms || []), ...(kb.wikiTerms || [])])].slice(0, 2);
-
-      // 1) Wikipedia
-      for (const term of termsToTry) {
-        try {
-          const summary = await fetchWikipediaSummary(term);
-          if (summary) {
-            sources.push({ title: `${summary.title} (Wikipedia)`, url: summary.url });
-            append += `\n\nPublic summary (Wikipedia: ${summary.title}):\n${summary.extract}`;
-            break;
-          }
-        } catch {
-          // ignore
-        }
-      }
-
-      // 2) DuckDuckGo IA fallback
-      if (!sources.length) {
-        try {
-          const ddg = await fetchDuckDuckGoInstantAnswer(trimmed);
-          if (ddg) {
-            sources.push({
-              title: `${ddg.title} (DuckDuckGo Instant Answer)`,
-              url: ddg.url || "",
-            });
-            append += `\n\nPublic summary (DuckDuckGo):\n${ddg.extract}`;
-          }
-        } catch {
-          // ignore
-        }
-      }
-
-      // 3) If both fail
-      if (!sources.length) {
-        append += `\n\nI could not fetch a public summary right now. Try rephrasing or ask for a simpler explanation.`;
-      }
-    }
-
-    const assistantMsg = {
-      id: `a_${Date.now() + 1}`,
-      role: "assistant",
-      ts: nowTs(),
-      text: `${baseText}${append}`,
-      sources,
-    };
-
-    setMessages((prev) => [...prev, assistantMsg]);
-    setBusy(false);
-  };
-
-  const handleKeyDown = (e) => {
+  function onKeyDown(e) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      send();
+      handleSend();
     }
-  };
+  }
 
-  const lastAssistantId = useMemo(() => {
-    const last = [...messages].reverse().find((m) => m.role === "assistant");
-    return last?.id || null;
-  }, [messages]);
-
-  if (!isOpen) return null;
+  if (!actualOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex justify-center">
-      {/* Keyboard-safe + chatbot layout */}
-      <div
-        className="w-full sm:max-w-md bg-slate-900 flex flex-col border border-blue-500/20"
-        style={{
-          height: "100dvh",
-          paddingBottom: "env(safe-area-inset-bottom)",
-        }}
-      >
-        <style>{`
-          @keyframes pulse-dot {
-            0%, 100% { transform: scale(1); opacity: .7; }
-            50% { transform: scale(1.25); opacity: 1; }
-          }
-          .pulse-dot { animation: pulse-dot 0.9s ease-in-out infinite; }
+    <div className="fixed inset-0 z-50">
+      {/* Backdrop */}
+      <button
+        className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
+        onClick={() => onClose?.()}
+        aria-label="Close modal backdrop"
+      />
 
-          /* Better mobile typing behavior */
-          textarea { -webkit-text-size-adjust: 100%; }
-
-          /* iOS momentum scrolling */
-          .chat-scroll { -webkit-overflow-scrolling: touch; }
-        `}</style>
-
-        {/* Header: sticky, never overlaps */}
-        <header className="sticky top-0 z-30 bg-gradient-to-r from-blue-600 to-blue-500 px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center backdrop-blur-sm flex-shrink-0">
-              <IonIcon icon={happyOutline} className="text-white text-2xl" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h2 className="text-white font-bold text-base truncate">BLISSS</h2>
-                {busy ? <span className="w-1.5 h-1.5 rounded-full bg-white pulse-dot" /> : null}
-              </div>
-              <p className="text-xs text-white/70">
-                General + period support
-                {busy ? <span className="ml-2 text-white/70 hidden sm:inline">typing</span> : null}
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={onClose}
-            className="w-9 h-9 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center hover:bg-white/25 transition"
-            aria-label="Close"
-          >
-            <IonIcon icon={closeOutline} className="text-white text-2xl" />
-          </button>
-        </header>
-
-        {/* Mini profile: sticky under header */}
-        {/* <div className="sticky top-[64px] z-20 bg-slate-900/92 backdrop-blur border-b border-blue-500/20 px-4 py-2">
-          <div className="flex items-center justify-between gap-2">
-            <div className="text-xs text-slate-200/85">
-              Cycle: <span className="text-slate-100 font-semibold">{profile.cycleLengthDays}d</span>
-              <span className="mx-2 text-slate-500">•</span>
-              Duration:{" "}
-              <span className="text-slate-100 font-semibold">{profile.periodDurationDays}d</span>
-            </div>
-            <div className="text-[11px] text-slate-300/70 hidden sm:block">
-              General info only. Emergencies: seek care.
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between mt-2 gap-2 flex-wrap">
-            <div className="flex items-center gap-2">
-              <button
-                className="text-xs px-3 py-1.5 rounded-xl bg-slate-800/60 text-blue-200 border border-blue-500/20 hover:bg-slate-800/80 transition"
-                onClick={() =>
-                  setProfile((p) => ({
-                    ...p,
-                    cycleLengthDays: clamp((p.cycleLengthDays || 28) - 1, 20, 45),
-                  }))
-                }
-                aria-label="Cycle minus"
-              >
-                Cycle -
-              </button>
-              <button
-                className="text-xs px-3 py-1.5 rounded-xl bg-slate-800/60 text-blue-200 border border-blue-500/20 hover:bg-slate-800/80 transition"
-                onClick={() =>
-                  setProfile((p) => ({
-                    ...p,
-                    cycleLengthDays: clamp((p.cycleLengthDays || 28) + 1, 20, 45),
-                  }))
-                }
-                aria-label="Cycle plus"
-              >
-                Cycle +
-              </button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                className="text-xs px-3 py-1.5 rounded-xl bg-slate-800/60 text-blue-200 border border-blue-500/20 hover:bg-slate-800/80 transition"
-                onClick={() =>
-                  setProfile((p) => ({
-                    ...p,
-                    periodDurationDays: clamp((p.periodDurationDays || 5) - 1, 1, 12),
-                  }))
-                }
-                aria-label="Duration minus"
-              >
-                Dur -
-              </button>
-              <button
-                className="text-xs px-3 py-1.5 rounded-xl bg-slate-800/60 text-blue-200 border border-blue-500/20 hover:bg-slate-800/80 transition"
-                onClick={() =>
-                  setProfile((p) => ({
-                    ...p,
-                    periodDurationDays: clamp((p.periodDurationDays || 5) + 1, 1, 12),
-                  }))
-                }
-                aria-label="Duration plus"
-              >
-                Dur +
-              </button>
-            </div>
-          </div>
-        </div> */}
-
-        {/* Chat area: scrollable */}
+      {/* Modal */}
+      <div className="absolute inset-0 flex items-center justify-center p-3 sm:p-6">
         <div
-          ref={listRef}
-          className="chat-scroll flex-1 overflow-y-auto px-4 py-4 space-y-4"
+          className={cx(
+            "relative w-full max-w-5xl overflow-hidden rounded-3xl border text-white",
+            "bg-gradient-to-b",
+            theme.bg,
+            "border-white/10",
+            theme.glow
+          )}
         >
-          {messages.map((m) => (
-            <div key={m.id} className="space-y-2">
-              <Bubble role={m.role}>
-                <div className="space-y-2">
-                  <div>{m.text}</div>
+          {/* Background blobs */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -top-20 -left-24 h-72 w-72 rounded-full bg-sky-500/20 blur-3xl animate-[pulse_6s_ease-in-out_infinite]" />
+            <div className="absolute top-40 -right-24 h-80 w-80 rounded-full bg-blue-600/16 blur-3xl animate-[pulse_7.5s_ease-in-out_infinite]" />
+            <div className="absolute bottom-0 left-1/3 h-96 w-96 rounded-full bg-indigo-500/12 blur-3xl animate-[pulse_9s_ease-in-out_infinite]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(56,189,248,0.10),transparent_35%),radial-gradient(circle_at_80%_25%,rgba(59,130,246,0.12),transparent_40%)]" />
+          </div>
 
-                  {/* Sources (kept) */}
-                  {m.role === "assistant" && Array.isArray(m.sources) && m.sources.length ? (
-                    <div className="text-[12px] text-slate-200/80 border-t border-blue-500/15 pt-2">
-                      <div className="font-semibold text-slate-100/90 mb-1">Sources</div>
-                      <ul className="list-disc pl-5 space-y-1">
-                        {m.sources.map((s, idx) => (
-                          <li key={`${m.id}_s_${idx}`}>
-                            {s.url ? (
-                              <a
-                                href={s.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-blue-300 hover:underline"
-                              >
-                                {s.title}
-                              </a>
-                            ) : (
-                              <span className="text-slate-200/80">{s.title}</span>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
+          {/* Header */}
+          <div className={cx("relative flex items-center justify-between gap-3 border-b px-4 py-3 sm:px-6", theme.card, "border-white/10")}>
+            <div className="flex items-center gap-3">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-sky-500/18 border border-sky-200/12">
+                <IconSpark className="h-5 w-5 text-sky-300" />
+              </div>
+              <div className="leading-tight">
+                <div className="text-sm font-semibold tracking-wide">
+                  BlueGPT Assistant
                 </div>
-              </Bubble>
-
-              {/* Like/save (kept) */}
-              {m.role === "assistant" ? (
-                <div className="flex items-center gap-2 px-1">
-                  <button
-                    onClick={() => toggleLikeMessage(m.id)}
-                    className={[
-                      "px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition border backdrop-blur-sm",
-                      liked[m.id]
-                        ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white border-blue-300/20"
-                        : "bg-slate-800/40 text-blue-200 border-blue-500/20 hover:bg-slate-800/60",
-                    ].join(" ")}
-                    aria-label="Save answer"
-                  >
-                    <IonIcon icon={liked[m.id] ? heart : heartOutline} className="text-base" />
-                    {liked[m.id] ? "Saved" : "Save"}
-                  </button>
+                <div className="text-xs text-white/60">
+                  Wikipedia + Open-Meteo + Local KB. No keys.
                 </div>
-              ) : null}
+              </div>
             </div>
-          ))}
 
-          {/* Quick chips (kept), inside scroll so it never gets hidden behind composer */}
-          {showQuick ? (
-            <div className="pt-2">
-              <div className="flex flex-wrap gap-2">
-                {QUICK_CHIPS.map((c) => (
-                  <button
-                    key={c.label}
-                    onClick={() => send(c.q)}
-                    className="text-xs px-3 py-2 rounded-xl bg-slate-800/60 text-blue-200 border border-blue-500/20 hover:bg-slate-800/80 transition"
-                  >
-                    {c.label}
-                  </button>
-                ))}
+            <div className="flex items-center gap-2">
+              {isThinking ? (
+                <button
+                  onClick={handleStop}
+                  className={cx(
+                    "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm",
+                    "bg-rose-500/12 hover:bg-rose-500/18 border-rose-200/18",
+                    theme.ring
+                  )}
+                >
+                  <span className="h-2 w-2 rounded-full bg-rose-300 animate-[pulse_1.2s_ease-in-out_infinite]" />
+                  Stop
+                </button>
+              ) : (
+                <button
+                  onClick={handleClear}
+                  className={cx(
+                    "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm",
+                    theme.btn,
+                    theme.ring
+                  )}
+                >
+                  <IconTrash className="h-4 w-4 text-sky-200" />
+                  Clear
+                </button>
+              )}
+
+              <button
+                onClick={() => onClose?.()}
+                className={cx(
+                  "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm",
+                  "bg-white/6 hover:bg-white/10 border-white/10",
+                  theme.ring
+                )}
+                aria-label="Close modal"
+              >
+                <IconClose className="h-4 w-4 text-white/80" />
+              </button>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div className="relative grid grid-rows-[1fr_auto]">
+            {/* Messages */}
+            <div
+              ref={listRef}
+              className={cx(
+                "h-[70vh] overflow-y-auto p-4 sm:p-6",
+                "scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
+              )}
+            >
+              <div className="space-y-4">
+                {messages.map((m) => {
+                  const isUser = m.role === "user";
+                  const meta = m.meta || {};
+                  return (
+                    <div key={m.id} className={cx("flex", isUser ? "justify-end" : "justify-start")}>
+                      <div
+                        className={cx(
+                          "max-w-[92%] sm:max-w-[78%] rounded-2xl border px-4 py-3",
+                          isUser
+                            ? "bg-sky-500/12 border-sky-200/16"
+                            : "bg-white/6 border-white/10",
+                          "backdrop-blur"
+                        )}
+                      >
+                        <div className="mb-1 flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-2">
+                            {!isUser ? (
+                              <>
+                                <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-sky-500/18 border border-sky-200/10">
+                                  <IconSpark className="h-4 w-4 text-sky-300" />
+                                </span>
+                                <span className="text-xs font-medium text-white/70">
+                                  {m.title || "Assistant"}
+                                </span>
+                                {meta.kind ? (
+                                  <span className="rounded-full bg-white/6 px-2 py-0.5 text-[10px] text-white/60 border border-white/10">
+                                    {meta.kind}
+                                  </span>
+                                ) : null}
+                              </>
+                            ) : (
+                              <span className="text-xs font-medium text-white/60">
+                                You
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-white/45">
+                              {formatTime(m.ts)}
+                            </span>
+                            {!isUser && (m.content || "").trim().length > 0 ? (
+                              <button
+                                onClick={() => copyText(m.content)}
+                                className={cx(
+                                  "rounded-lg border px-2 py-1 text-[11px] text-white/70 hover:text-white",
+                                  "bg-white/5 border-white/10 hover:bg-white/8",
+                                  theme.ring
+                                )}
+                                title="Copy"
+                              >
+                                <span className="inline-flex items-center gap-1">
+                                  <IconCopy className="h-3.5 w-3.5" />
+                                  Copy
+                                </span>
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
+
+                        {!isUser && meta.thumbnail ? (
+                          <div className="mb-3 overflow-hidden rounded-xl border border-white/10 bg-white/5">
+                            <img
+                              src={meta.thumbnail}
+                              alt=""
+                              className="h-40 w-full object-cover"
+                              loading="lazy"
+                            />
+                          </div>
+                        ) : null}
+
+                        {meta.typing ? (
+                          <div className="relative">
+                            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_1.4s_linear_infinite]" />
+                            <div className="relative text-sm text-white/90">
+                              <Markdownish text={m.content || " "} />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-sm text-white/90">
+                            <Markdownish text={m.content} />
+                          </div>
+                        )}
+
+                        {!isUser && meta.url ? (
+                          <div className="mt-3">
+                            <a
+                              href={meta.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className={cx(
+                                "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs",
+                                "bg-sky-500/12 hover:bg-sky-500/18 border-sky-200/14 text-sky-200",
+                                theme.ring
+                              )}
+                            >
+                              Source
+                            </a>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Composer */}
+            <div className="border-t border-white/10 p-3 sm:p-4">
+              <div className="flex items-end gap-2 sm:gap-3">
+                <div className="flex-1">
+                  <div className="relative">
+                    <textarea
+                      ref={taRef}
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={onKeyDown}
+                      placeholder="Ask anything. Try: what is … | who is … | weather in …"
+                      rows={1}
+                      className={cx(
+                        "w-full resize-none rounded-2xl border bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/35",
+                        "border-white/10 focus:border-sky-300/30",
+                        theme.ring
+                      )}
+                    />
+                    <div className="pointer-events-none absolute right-3 top-3 text-[10px] text-white/35">
+                      Enter to send. Shift+Enter new line.
+                    </div>
+                  </div>
+
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {[
+                      "what is artificial intelligence",
+                      "who is Alan Turing",
+                      "weather in Bengaluru",
+                      "define blockchain",
+                    ].map((chip) => (
+                      <button
+                        key={chip}
+                        onClick={() => setInput(chip)}
+                        className={cx(
+                          "rounded-full border px-3 py-1 text-[11px] text-white/70 hover:text-white",
+                          "bg-white/5 border-white/10 hover:bg-white/8",
+                          theme.ring
+                        )}
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleSend}
+                  disabled={!canSend}
+                  className={cx(
+                    "group inline-flex h-12 w-12 items-center justify-center rounded-2xl border transition",
+                    canSend
+                      ? "bg-sky-500/20 hover:bg-sky-500/28 border-sky-200/18"
+                      : "bg-white/4 border-white/8 opacity-60 cursor-not-allowed",
+                    theme.ring
+                  )}
+                  title="Send"
+                >
+                  <IconSend className="h-5 w-5 text-sky-200 group-hover:text-sky-100" />
+                </button>
+              </div>
+
+              <div className="mt-3 text-[11px] text-white/45">
+                Free-source assistant. Verify critical info.
+              </div>
+            </div>
+          </div>
+
+          {/* Toast */}
+          {toast ? (
+            <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2">
+              <div className="rounded-full border border-white/12 bg-slate-950/70 px-4 py-2 text-xs text-white/80 backdrop-blur">
+                {toast}
               </div>
             </div>
           ) : null}
 
-          {/* spacer so last message is never hidden behind sticky composer */}
-          <div className="h-28" />
-        </div>
-
-        {/* Composer: sticky bottom, keyboard-safe */}
-        <div
-          className="sticky bottom-0 z-30 bg-slate-900/92 backdrop-blur border-t border-blue-500/20 px-4 py-3"
-          style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)" }}
-        >
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            rows={1}
-            placeholder='Ask anything non-sensitive. Example: “Explain gravity” or “Food tips for cramps”.'
-            className="w-full resize-none rounded-2xl bg-slate-800/60 border border-blue-500/20 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-400/80 outline-none focus:ring-2 focus:ring-blue-500/30"
-          />
-
-          <div className="flex gap-2 mt-2">
-            <button
-              onClick={() => send()}
-              disabled={busy || !input.trim()}
-              className={[
-                "flex-1 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg active:scale-[0.99] text-sm",
-                busy || !input.trim()
-                  ? "bg-slate-700/40 text-slate-300 cursor-not-allowed border border-blue-500/10"
-                  : "bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white shadow-blue-600/20",
-              ].join(" ")}
-            >
-              Send
-            </button>
-
-            <button
-              onClick={clearChat}
-              className="px-3 py-3 rounded-xl font-semibold flex items-center justify-center bg-slate-800/60 text-blue-200 hover:bg-slate-800/80 transition border border-blue-500/20"
-              aria-label="Clear"
-              title="Clear chat"
-            >
-              <IonIcon icon={refreshOutline} className="text-lg" />
-            </button>
-
-            <button
-              onClick={shareLastAssistant}
-              className="px-3 py-3 rounded-xl font-semibold flex items-center justify-center bg-slate-800/60 text-blue-200 hover:bg-slate-800/80 transition border border-blue-500/20"
-              aria-label="Share"
-              title="Share answer"
-            >
-              <IonIcon icon={shareOutline} className="text-lg" />
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between text-[11px] text-slate-300/70 gap-2 mt-2">
-            <div className="truncate">
-              Saved answers:{" "}
-              <span className="text-slate-100 font-semibold">
-                {Object.keys(liked || {}).length}
-              </span>
-            </div>
-            <button
-              onClick={() => setShowQuick((s) => !s)}
-              className="text-blue-300 hover:underline whitespace-nowrap"
-              type="button"
-            >
-              {showQuick ? "Hide" : "Show"}
-            </button>
-          </div>
-
-          <div className="mt-2 bg-gradient-to-r from-blue-600/15 to-cyan-600/10 rounded-xl p-3 border border-blue-500/20 backdrop-blur-sm">
-            <p className="text-center text-xs text-blue-100/80 font-medium">
-              BLISSS answers with general guidance and free public sources when available. For emergencies, seek urgent medical care.
-            </p>
-          </div>
+          {/* Keyframes */}
+          <style>{`
+            @keyframes shimmer {
+              0% { transform: translateX(-100%); opacity: .0; }
+              30% { opacity: .6; }
+              100% { transform: translateX(100%); opacity: .0; }
+            }
+            .animate-\\[shimmer_1\\.4s_linear_infinite\\]{
+              animation: shimmer 1.4s linear infinite;
+            }
+            .scrollbar-thin::-webkit-scrollbar { width: 10px; }
+            .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); border-radius: 999px; }
+            .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+          `}</style>
         </div>
       </div>
     </div>
   );
-};
-
-export default BlisssModal;
+}
