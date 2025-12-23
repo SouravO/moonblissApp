@@ -4,6 +4,8 @@ import { getUserData } from "@/infrastructure/storage/onboarding";
 import { usePeriodPrediction } from "@/domains/health/hooks/usePeriodPrediction";
 import { motion } from "framer-motion";
 import ColorBg from "@/components/ColorBg";
+import { IonToggle } from "@ionic/react";
+
 import {
   Bell,
   Heart,
@@ -83,6 +85,44 @@ const FloatingWellnessIcons = React.memo(function FloatingWellnessIcons() {
 });
 
 const HealthHome = () => {
+  // Period toggle and date picker state
+  const [periodOn, setPeriodOn] = useState(() => {
+    // If a period start date is set, toggle is ON
+    return Boolean(localStorage.getItem("periodStartDate"));
+  });
+  const [showPeriodModal, setShowPeriodModal] = useState(false);
+  const [periodDate, setPeriodDate] = useState(() => {
+    // Load from localStorage if exists
+    const d = localStorage.getItem("periodStartDate");
+    return d ? d : "";
+  });
+
+  // Handle toggle change
+  const handlePeriodToggle = (e) => {
+    const checked = e.detail ? e.detail.checked : e.target.checked;
+    setPeriodOn(checked);
+    if (checked) {
+      setShowPeriodModal(true);
+    } else {
+      // Optionally clear date if toggled off
+      // localStorage.removeItem("periodStartDate");
+    }
+  };
+
+  // Handle date selection
+  const handleDateSelect = (e) => {
+    const date = e.target.value;
+    setPeriodDate(date);
+  };
+
+  // Save date to localStorage and close modal
+  const savePeriodDate = () => {
+    if (periodDate) {
+      localStorage.setItem("periodStartDate", periodDate);
+      setShowPeriodModal(false);
+    }
+  };
+
   const userData = getUserData();
   const userName = userData?.name || "Sarah";
   const { nextPeriod, currentPhase } = usePeriodPrediction();
@@ -137,7 +177,7 @@ const HealthHome = () => {
 
       // Schedule notification
       setNotifStatus("Sending...");
-      const result = await LocalNotifications.schedule({
+      await LocalNotifications.schedule({
         notifications: [
           {
             id: Math.floor(Math.random() * 90000) + 10000,
@@ -225,6 +265,8 @@ const HealthHome = () => {
               <button className="w-11 h-11 rounded-2xl bg-white/80 border border-slate-200 shadow-sm flex items-center justify-center hover:bg-white transition">
                 <Bell className="w-5 h-5 text-slate-600" />
               </button>
+              {/* toggle button in ionic */}
+              {/* <IonToggle  /> */}
             </div>
           </div>
         </motion.header>
@@ -448,42 +490,8 @@ const HealthHome = () => {
                 </div>
               </motion.section>
 
-              {/* Wellness */}
+              {/* water  */}
               <Water />
-              {/* <motion.section
-                variants={fadeUp}
-                initial="hidden"
-                animate="visible"
-                transition={{ delay: 0.26 }}
-                className="rounded-3xl border border-blue-100 bg-gradient-to-br from-white to-blue-50 p-5 shadow-sm hover:shadow-md transition"
-              >
-                <div className="flex items-center justify-between">
-                  <motion.div
-                    className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-700 to-indigo-600 text-white flex items-center justify-center"
-                    animate={{ rotate: [0, 6, 0, -6, 0] }}
-                    transition={{
-                      duration: 5.2,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
-                  >
-                    <Flower2 className="w-5 h-5" />
-                  </motion.div>
-                  <span className="text-xs text-slate-500">Tips</span>
-                </div>
-                <h3 className="mt-4 text-sm font-semibold text-slate-900">
-                  Water
-                </h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Small things that help
-                </p>
-
-                <div className="mt-4 space-y-2 text-xs text-slate-700">
-                  <div>✓ Light yoga</div>
-                  <div>✓ Hydrate</div>
-                  <div>✓ Good sleep</div>
-                </div>
-              </motion.section> */}
             </div>
 
             {/* Week Overview */}
