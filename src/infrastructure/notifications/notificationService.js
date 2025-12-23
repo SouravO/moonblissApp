@@ -24,7 +24,25 @@ export const NOTIFICATION_TYPES = {
     HYDRATION_REMINDER: 3000,
     MOOD_CHECK: 4000,
     DAILY_TIP: 5000,
+    GOOD_MORNING: 6000,
 };
+
+// Motivational messages for variety
+const MORNING_MESSAGES = [
+    { title: "Good Morning, Beautiful! ☀️", body: "Start your day with 5 minutes of gentle stretching. Your body will thank you!" },
+    { title: "Rise & Shine! 🌸", body: "A new day, a fresh start. How about some morning yoga to energize your soul?" },
+    { title: "Hello Sunshine! 🌺", body: "Take a deep breath, set your intentions, and make today amazing!" },
+    { title: "Good Morning Queen! 👑", body: "Your wellness journey starts with this moment. Try some light yoga today!" },
+    { title: "Wake Up & Glow! ✨", body: "10 minutes of morning meditation can transform your entire day. Give it a try!" },
+];
+
+const HYDRATION_MESSAGES = [
+    { title: "Hydration Check! 💧", body: "Your cells are thirsty! Grab a glass of water and feel the refresh." },
+    { title: "Water Break Time! 💦", body: "Staying hydrated keeps your skin glowing and your mind sharp. Drink up!" },
+    { title: "Sip Sip Hooray! 🥤", body: "2 hours since your last drink - time to refuel with some H2O!" },
+    { title: "Hydration Reminder 💧", body: "Water is life! Take a moment to hydrate your beautiful self." },
+    { title: "Thirsty? You Should Be! 💦", body: "Your body is 60% water. Keep the balance - drink a glass now!" },
+];
 
 /**
  * Initialize notification channels (Android 8+)
@@ -270,39 +288,83 @@ export async function scheduleMedicationReminder(hour = 18, minute = 15, name = 
 }
 
 /**
- * Schedule hydration reminders (every 2 hours during daytime)
+ * Schedule hydration reminders every 2 hours during daytime (8 AM - 10 PM)
  */
 export async function scheduleHydrationReminders() {
     if (!Capacitor.isNativePlatform()) return;
 
     try {
-        // Cancel existing hydration reminders
-        await LocalNotifications.cancel({
-            notifications: [{ id: NOTIFICATION_TYPES.HYDRATION_REMINDER }],
+        // Cancel existing hydration reminders (IDs 3000-3010)
+        const cancelIds = [];
+        for (let i = 0; i <= 10; i++) {
+            cancelIds.push({ id: NOTIFICATION_TYPES.HYDRATION_REMINDER + i });
+        }
+        await LocalNotifications.cancel({ notifications: cancelIds });
+
+        // Schedule reminders every 2 hours: 8 AM, 10 AM, 12 PM, 2 PM, 4 PM, 6 PM, 8 PM
+        const hydrationHours = [8, 10, 12, 14, 16, 18, 20];
+        const notifications = hydrationHours.map((hour, index) => {
+            const msg = HYDRATION_MESSAGES[index % HYDRATION_MESSAGES.length];
+            return {
+                id: NOTIFICATION_TYPES.HYDRATION_REMINDER + index,
+                title: msg.title,
+                body: msg.body,
+                schedule: {
+                    on: { hour, minute: 0 },
+                    every: "day",
+                    allowWhileIdle: true,
+                },
+                channelId: CHANNELS.HYDRATION,
+                smallIcon: "ic_stat_icon",
+                iconColor: "#87CEEB",
+                extra: { type: "hydration_reminder" },
+            };
         });
+
+        await LocalNotifications.schedule({ notifications });
+        console.log("Hydration reminders scheduled every 2 hours (8 AM - 8 PM)");
+    } catch (error) {
+        console.error("Failed to schedule hydration reminders:", error);
+    }
+}
+
+/**
+ * Schedule good morning wellness notification
+ */
+export async function scheduleGoodMorningNotification(hour = 7, minute = 0) {
+    if (!Capacitor.isNativePlatform()) return;
+
+    try {
+        // Cancel existing morning notification
+        await LocalNotifications.cancel({
+            notifications: [{ id: NOTIFICATION_TYPES.GOOD_MORNING }],
+        });
+
+        // Pick a random message
+        const msg = MORNING_MESSAGES[Math.floor(Math.random() * MORNING_MESSAGES.length)];
 
         await LocalNotifications.schedule({
             notifications: [
                 {
-                    id: NOTIFICATION_TYPES.HYDRATION_REMINDER,
-                    title: "Stay Hydrated 💧",
-                    body: "Time for a glass of water! Your body will thank you.",
+                    id: NOTIFICATION_TYPES.GOOD_MORNING,
+                    title: msg.title,
+                    body: msg.body,
                     schedule: {
-                        every: "hour",
-                        count: 8, // 8 times per day
-                        allowWhileIdle: false,
+                        on: { hour, minute },
+                        every: "day",
+                        allowWhileIdle: true,
                     },
-                    channelId: CHANNELS.HYDRATION,
+                    channelId: CHANNELS.GENERAL,
                     smallIcon: "ic_stat_icon",
-                    iconColor: "#87CEEB",
-                    extra: { type: "hydration_reminder" },
+                    iconColor: "#FFB6C1",
+                    extra: { type: "good_morning" },
                 },
             ],
         });
 
-        console.log("Hydration reminders scheduled");
+        console.log(`Good morning notification scheduled for ${hour}:${minute.toString().padStart(2, "0")}`);
     } catch (error) {
-        console.error("Failed to schedule hydration reminders:", error);
+        console.error("Failed to schedule good morning notification:", error);
     }
 }
 

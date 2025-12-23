@@ -11,8 +11,8 @@ const App = () => {
         const {
           initializeNotificationChannels,
           requestNotificationPermission,
-          sendImmediateNotification,
-          scheduleMoodCheckIn,
+          scheduleGoodMorningNotification,
+          scheduleHydrationReminders,
         } = await import("@/infrastructure/notifications/notificationService");
 
         // Initialize channels first
@@ -23,16 +23,13 @@ const App = () => {
         console.log("Notification permission:", permission);
 
         if (permission.display === "granted") {
-          // Send a test notification immediately (will appear in 1 second)
-          await sendImmediateNotification(
-            "Welcome to Moonbliss! 🌸",
-            "Notifications are working perfectly!"
-          );
+          // Schedule good morning notification at 7:00 AM
+          await scheduleGoodMorningNotification(7, 0);
 
-          // Schedule daily mood check-in at 8 PM
-          await scheduleMoodCheckIn(20, 0);
+          // Schedule hydration reminders every 2 hours (8 AM - 8 PM)
+          await scheduleHydrationReminders();
 
-          console.log("Notifications initialized and test sent!");
+          console.log("All notifications scheduled!");
         }
       } catch (error) {
         // Silently fail - notifications are not critical for app to work

@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from "react";
 import PageLayout from "@/shared/layout/PageLayout";
 import { getUserData } from "@/infrastructure/storage/onboarding";
@@ -16,6 +15,7 @@ import {
   Smile,
 } from "lucide-react";
 import { menstrualNutritionTips } from "@/domains/health/data/nutritionTips";
+import Water from "../components/Water";
 
 /* Animation presets */
 const fadeUp = {
@@ -163,7 +163,9 @@ const HealthHome = () => {
     const weekDays = [];
     const currentDay = today.getDay();
     const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - (currentDay === 0 ? 6 : currentDay - 1));
+    startOfWeek.setDate(
+      today.getDate() - (currentDay === 0 ? 6 : currentDay - 1)
+    );
 
     for (let i = 0; i < 7; i++) {
       const date = new Date(startOfWeek);
@@ -215,7 +217,9 @@ const HealthHome = () => {
                 <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900">
                   Hi, <span className="text-blue-700">{userName}</span>
                 </h1>
-                <p className="text-sm text-slate-500 mt-1">Today’s health insights</p>
+                <p className="text-sm text-slate-500 mt-1">
+                  Today’s health insights
+                </p>
               </div>
 
               <button className="w-11 h-11 rounded-2xl bg-white/80 border border-slate-200 shadow-sm flex items-center justify-center hover:bg-white transition">
@@ -235,7 +239,9 @@ const HealthHome = () => {
             >
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
+                  <h2 className="text-xl font-semibold text-slate-900">
+                    {title}
+                  </h2>
                   <p className="text-sm text-slate-500 mt-1">{subtitle}</p>
                 </div>
                 <button
@@ -248,7 +254,8 @@ const HealthHome = () => {
 
               <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-50 to-white border border-blue-100">
                 <p className="text-sm font-medium text-slate-900">
-                  {randomTip?.description || "Eat iron-rich foods and stay hydrated."}
+                  {randomTip?.description ||
+                    "Eat iron-rich foods and stay hydrated."}
                 </p>
               </div>
 
@@ -309,7 +316,9 @@ const HealthHome = () => {
                     <p className="text-xs uppercase tracking-wider text-slate-500 mb-2">
                       Cycle progress
                     </p>
-                    <p className="text-4xl font-semibold text-slate-900">{progress}%</p>
+                    <p className="text-4xl font-semibold text-slate-900">
+                      {progress}%
+                    </p>
                     <p className="text-sm text-slate-500 mt-1">
                       Keep steady habits. Small wins daily.
                     </p>
@@ -350,7 +359,8 @@ const HealthHome = () => {
                     {currentPhase?.name || "Follicular"} Phase
                   </h2>
                   <p className="text-sm text-slate-600 mt-2">
-                    {currentPhase?.description || "Time to boost energy and activity."}
+                    {currentPhase?.description ||
+                      "Time to boost energy and activity."}
                   </p>
                 </div>
 
@@ -382,7 +392,10 @@ const HealthHome = () => {
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-blue-700 to-sky-400 transition-all duration-500"
                   style={{
-                    width: `${Math.min(currentPhase?.percentComplete ?? 50, 100)}%`,
+                    width: `${Math.min(
+                      currentPhase?.percentComplete ?? 50,
+                      100
+                    )}%`,
                   }}
                 />
               </div>
@@ -402,14 +415,22 @@ const HealthHome = () => {
                   <motion.div
                     className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-sky-400 text-white flex items-center justify-center"
                     animate={{ y: [0, -2, 0] }}
-                    transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
+                    transition={{
+                      duration: 2.6,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
                   >
                     <Heart className="w-5 h-5" />
                   </motion.div>
                   <span className="text-xs text-slate-500">Today</span>
                 </div>
-                <h3 className="mt-4 text-sm font-semibold text-slate-900">Quick Log</h3>
-                <p className="text-xs text-slate-500 mt-1">Track your symptoms</p>
+                <h3 className="mt-4 text-sm font-semibold text-slate-900">
+                  Quick Log
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Track your symptoms
+                </p>
 
                 <div className="mt-4 space-y-2 text-xs">
                   <div className="flex justify-between text-slate-600">
@@ -428,7 +449,8 @@ const HealthHome = () => {
               </motion.section>
 
               {/* Wellness */}
-              <motion.section
+              <Water />
+              {/* <motion.section
                 variants={fadeUp}
                 initial="hidden"
                 animate="visible"
@@ -439,21 +461,29 @@ const HealthHome = () => {
                   <motion.div
                     className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-700 to-indigo-600 text-white flex items-center justify-center"
                     animate={{ rotate: [0, 6, 0, -6, 0] }}
-                    transition={{ duration: 5.2, repeat: Infinity, ease: "easeInOut" }}
+                    transition={{
+                      duration: 5.2,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
                   >
                     <Flower2 className="w-5 h-5" />
                   </motion.div>
                   <span className="text-xs text-slate-500">Tips</span>
                 </div>
-                <h3 className="mt-4 text-sm font-semibold text-slate-900">Wellness</h3>
-                <p className="text-xs text-slate-500 mt-1">Small things that help</p>
+                <h3 className="mt-4 text-sm font-semibold text-slate-900">
+                  Water
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Small things that help
+                </p>
 
                 <div className="mt-4 space-y-2 text-xs text-slate-700">
                   <div>✓ Light yoga</div>
                   <div>✓ Hydrate</div>
                   <div>✓ Good sleep</div>
                 </div>
-              </motion.section>
+              </motion.section> */}
             </div>
 
             {/* Week Overview */}
@@ -465,7 +495,9 @@ const HealthHome = () => {
               className="rounded-3xl border border-slate-200 bg-white/80 backdrop-blur p-6 shadow-sm"
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-semibold text-slate-900">Week Overview</h3>
+                <h3 className="text-base font-semibold text-slate-900">
+                  Week Overview
+                </h3>
                 <span className="text-xs text-slate-500">This week</span>
               </div>
 
@@ -484,10 +516,18 @@ const HealthHome = () => {
                           : "bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100",
                       ].join(" ")}
                     >
-                      <span className={isToday ? "text-white/85 mb-1" : "text-slate-500 mb-1"}>
+                      <span
+                        className={
+                          isToday ? "text-white/85 mb-1" : "text-slate-500 mb-1"
+                        }
+                      >
                         {WEEK_DAYS[idx]}
                       </span>
-                      <span className={isToday ? "text-white" : "text-slate-900"}>{dayNum}</span>
+                      <span
+                        className={isToday ? "text-white" : "text-slate-900"}
+                      >
+                        {dayNum}
+                      </span>
                     </div>
                   );
                 })}
@@ -504,7 +544,9 @@ const HealthHome = () => {
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-base font-semibold text-slate-900">Period Timeline</h3>
+                  <h3 className="text-base font-semibold text-slate-900">
+                    Period Timeline
+                  </h3>
                   <p className="text-xs text-slate-500 mt-1">Next period in</p>
                 </div>
                 <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-2">
@@ -526,7 +568,9 @@ const HealthHome = () => {
                 />
               </div>
 
-              <p className="text-xs text-slate-500 mt-3">📍 Low chance of pregnancy</p>
+              <p className="text-xs text-slate-500 mt-3">
+                📍 Low chance of pregnancy
+              </p>
             </motion.section>
 
             {/* Tips Grid */}
@@ -543,11 +587,17 @@ const HealthHome = () => {
                 <motion.div
                   className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-sky-400 text-white flex items-center justify-center"
                   animate={{ scale: [1, 1.05, 1] }}
-                  transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+                  transition={{
+                    duration: 3.2,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
                 >
                   <Droplets className="w-5 h-5" />
                 </motion.div>
-                <h4 className="mt-4 text-sm font-semibold text-slate-900">Nutrition</h4>
+                <h4 className="mt-4 text-sm font-semibold text-slate-900">
+                  Nutrition
+                </h4>
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                   Iron-rich foods help energy.
                 </p>
@@ -564,11 +614,17 @@ const HealthHome = () => {
                 <motion.div
                   className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-700 to-indigo-600 text-white flex items-center justify-center"
                   animate={{ y: [0, -2, 0], x: [0, 1, 0] }}
-                  transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
+                  transition={{
+                    duration: 2.8,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
                 >
                   <Activity className="w-5 h-5" />
                 </motion.div>
-                <h4 className="mt-4 text-sm font-semibold text-slate-900">Activity</h4>
+                <h4 className="mt-4 text-sm font-semibold text-slate-900">
+                  Activity
+                </h4>
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                   Light movement eases discomfort.
                 </p>
@@ -585,13 +641,21 @@ const HealthHome = () => {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-base font-semibold text-slate-900">Journal</h3>
-                  <p className="text-xs text-slate-500 mt-1">How are you feeling?</p>
+                  <h3 className="text-base font-semibold text-slate-900">
+                    Journal
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    How are you feeling?
+                  </p>
                 </div>
                 <motion.div
                   className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-600 to-sky-400 text-white flex items-center justify-center"
                   animate={{ rotate: [0, 3, 0, -3, 0] }}
-                  transition={{ duration: 4.6, repeat: Infinity, ease: "easeInOut" }}
+                  transition={{
+                    duration: 4.6,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
                 >
                   <Sparkles className="w-5 h-5" />
                 </motion.div>
@@ -605,4 +669,3 @@ const HealthHome = () => {
 };
 
 export default React.memo(HealthHome);
-
