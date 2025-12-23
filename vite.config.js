@@ -23,13 +23,12 @@ export default defineConfig({
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: true,
+        drop_console: false,
         drop_debugger: true
       }
     },
     // Split chunks for better caching
     rollupOptions: {
-      external: ['@capacitor/app', '@capacitor/core'],
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router', 'react-router-dom'],
@@ -48,7 +47,6 @@ export default defineConfig({
   },
   // Optimize dependencies
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', '@ionic/react'],
-    exclude: ['@capacitor/app', '@capacitor/core']
+    include: ['react', 'react-dom', 'react-router-dom', '@ionic/react', '@capacitor/core', '@capacitor/local-notifications']
   }
 })

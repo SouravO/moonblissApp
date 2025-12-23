@@ -14,6 +14,7 @@
     "@capacitor/core": "^8.0.0",
     "@capacitor/ios": "^8.0.0",
     "@capacitor/local-notifications": "^8.0.0",
+    "@capacitor/status-bar": "^8.0.0",
     "@ionic/react": "^8.7.13",
     "@ionic/react-router": "^8.7.13",
     "@tailwindcss/vite": "^4.1.18",

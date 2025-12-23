@@ -21,6 +21,73 @@ const HealthHome = () => {
     usePeriodPrediction();
   const { title, subtitle, tips } = menstrualNutritionTips;
   const [nutritionModal, setNutritionModal] = useState(false);
+  const [notifStatus, setNotifStatus] = useState("Tap to test");
+
+  // Test notification function - lazy loads Capacitor to prevent crash
+  const testNotification = async () => {
+    try {
+      setNotifStatus("Loading...");
+
+      // Lazy load Capacitor modules
+      let Capacitor, LocalNotifications;
+      try {
+        const capacitorCore = await import("@capacitor/core");
+        Capacitor = capacitorCore.Capacitor;
+      } catch (e) {
+        setNotifStatus("❌ Capacitor not available");
+        return;
+      }
+
+      // Check if native platform
+      const isNative = Capacitor.isNativePlatform();
+      if (!isNative) {
+        setNotifStatus("❌ Not native platform (run on phone)");
+        return;
+      }
+
+      try {
+        const notifModule = await import("@capacitor/local-notifications");
+        LocalNotifications = notifModule.LocalNotifications;
+      } catch (e) {
+        setNotifStatus("❌ LocalNotifications not available");
+        return;
+      }
+
+      setNotifStatus("Checking permission...");
+
+      // Check permission
+      const permCheck = await LocalNotifications.checkPermissions();
+
+      if (permCheck.display !== "granted") {
+        setNotifStatus("Requesting permission...");
+        const permReq = await LocalNotifications.requestPermissions();
+
+        if (permReq.display !== "granted") {
+          setNotifStatus("❌ Permission denied - enable in Settings");
+          return;
+        }
+      }
+
+      // Schedule notification
+      setNotifStatus("Sending...");
+      const result = await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: Math.floor(Math.random() * 90000) + 10000,
+            title: "🎉 Test Notification",
+            body: "Notifications are working!",
+            schedule: { at: new Date(Date.now() + 2000) },
+            autoCancel: true,
+          },
+        ],
+      });
+
+      setNotifStatus(`✅ Done! Check notification in 2 sec`);
+    } catch (error) {
+      setNotifStatus(`❌ ${error.message || "Unknown error"}`);
+      console.error("Notification test error:", error);
+    }
+  };
 
   // Memoize week calculations
   const { weekDays, today } = useMemo(() => {
@@ -47,6 +114,9 @@ const HealthHome = () => {
       <ColorBg />
 
       <div className="relative bg-[#1a43bf] text-gray-100">
+        {/* 🔔 TEST NOTIFICATION BUTTON - Remove after testing */}
+       
+
         {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -10 }}

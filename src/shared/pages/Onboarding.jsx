@@ -1,4 +1,3 @@
-
 import { IonPage, IonContent, IonIcon } from "@ionic/react";
 import { logoGoogle, logoFacebook, logoTwitter } from "ionicons/icons";
 import { useState, useCallback } from "react";
@@ -75,12 +74,14 @@ const Onboarding = () => {
             <div className="relative min-h-screen w-full overflow-hidden">
               {/* Animated gradient background - lightweight CSS replacement for Silk */}
               <div className="absolute inset-0 z-0 bg-gradient-to-br from-blue-600 via-blue-500 to-blue-700 opacity-40 animate-pulse" />
-              
+
               {/* Soft noise overlay */}
-              <div className="absolute inset-0 z-[0.5] mix-blend-overlay opacity-30"
+              <div
+                className="absolute inset-0 z-[0.5] mix-blend-overlay opacity-30"
                 style={{
-                  backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 1px, transparent 1px)',
-                  backgroundSize: '50px 50px'
+                  backgroundImage:
+                    "radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 1px, transparent 1px)",
+                  backgroundSize: "50px 50px",
                 }}
               />
 
@@ -165,10 +166,12 @@ const Onboarding = () => {
                                            focus:shadow-[0_14px_40px_rgba(255,255,255,0.10),0_18px_50px_rgba(255,60,163,0.18)]
                                            disabled:opacity-60"
                               />
-                              <label className="absolute left-4 top-[16px] text-[13px] text-white/65 pointer-events-none
+                              <label
+                                className="absolute left-4 top-[16px] text-[13px] text-white/65 pointer-events-none
                                                  transition-all duration-200
                                                  peer-focus:top-[8px] peer-focus:text-[11px] peer-focus:text-white/80
-                                                 peer-[:not(:placeholder-shown)]:top-[8px] peer-[:not(:placeholder-shown)]:text-[11px] peer-[:not(:placeholder-shown)]:text-white/80">
+                                                 peer-[:not(:placeholder-shown)]:top-[8px] peer-[:not(:placeholder-shown)]:text-[11px] peer-[:not(:placeholder-shown)]:text-white/80"
+                              >
                                 Email
                               </label>
 
@@ -191,7 +194,9 @@ const Onboarding = () => {
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder=" "
                                 disabled={isSubmitting}
-                                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+                                onKeyDown={(e) =>
+                                  e.key === "Enter" && handleLogin()
+                                }
                                 className="peer w-full h-[54px] rounded-[18px]
                                            border border-white/18 bg-white/10 text-white/90
                                            px-4 pt-5 pb-2 outline-none
@@ -200,10 +205,12 @@ const Onboarding = () => {
                                            focus:shadow-[0_14px_40px_rgba(255,255,255,0.10),0_18px_50px_rgba(255,60,163,0.18)]
                                            disabled:opacity-60"
                               />
-                              <label className="absolute left-4 top-[16px] text-[13px] text-white/65 pointer-events-none
+                              <label
+                                className="absolute left-4 top-[16px] text-[13px] text-white/65 pointer-events-none
                                                  transition-all duration-200
                                                  peer-focus:top-[8px] peer-focus:text-[11px] peer-focus:text-white/80
-                                                 peer-[:not(:placeholder-shown)]:top-[8px] peer-[:not(:placeholder-shown)]:text-[11px] peer-[:not(:placeholder-shown)]:text-white/80">
+                                                 peer-[:not(:placeholder-shown)]:top-[8px] peer-[:not(:placeholder-shown)]:text-[11px] peer-[:not(:placeholder-shown)]:text-white/80"
+                              >
                                 Password
                               </label>
 
@@ -244,7 +251,9 @@ const Onboarding = () => {
                         {/* Button */}
                         <button
                           onClick={handleLogin}
-                          disabled={!email.trim() || !password.trim() || isSubmitting}
+                          disabled={
+                            !email.trim() || !password.trim() || isSubmitting
+                          }
                           className="relative mt-5 w-full h-[54px] rounded-[18px] font-extrabold text-white
                                      bg-[linear-gradient(135deg,#1a43bf,rgba(255,255,255,0.35),#3b82f6)]
                                      shadow-[0_18px_44px_rgba(26,67,191,0.30)]
@@ -371,4 +380,3 @@ const Onboarding = () => {
 };
 
 export default Onboarding;
-

@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import PageLayout from "@/shared/layout/PageLayout";
@@ -101,7 +100,10 @@ const Profile = () => {
     "mb_profile_email",
     "alex@example.com"
   );
-  const [dateOfBirth, setDateOfBirth] = usePersistentState("mb_profile_dob", "");
+  const [dateOfBirth, setDateOfBirth] = usePersistentState(
+    "mb_profile_dob",
+    ""
+  );
   const [ageManual, setAgeManual] = usePersistentState(
     "mb_profile_age_manual",
     26
@@ -118,7 +120,10 @@ const Profile = () => {
     "mb_cycle_last_start",
     ""
   );
-  const [cycleLength, setCycleLength] = usePersistentState("mb_cycle_length", 28);
+  const [cycleLength, setCycleLength] = usePersistentState(
+    "mb_cycle_length",
+    28
+  );
   const [periodLength, setPeriodLength] = usePersistentState(
     "mb_period_length",
     5
@@ -129,7 +134,10 @@ const Profile = () => {
     "mb_goal_hydration",
     2200
   );
-  const [sleepGoalHrs, setSleepGoalHrs] = usePersistentState("mb_goal_sleep", 8);
+  const [sleepGoalHrs, setSleepGoalHrs] = usePersistentState(
+    "mb_goal_sleep",
+    8
+  );
   const [movementGoalMin, setMovementGoalMin] = usePersistentState(
     "mb_goal_move",
     30
@@ -257,11 +265,15 @@ const Profile = () => {
 
     const today = new Date();
     const nextPeriod = startValid ? addDays(startValid, cl) : null;
-    const periodEnd = startValid ? addDays(startValid, Math.max(0, pl - 1)) : null;
+    const periodEnd = startValid
+      ? addDays(startValid, Math.max(0, pl - 1))
+      : null;
     const ovulation = nextPeriod ? addDays(nextPeriod, -14) : null;
 
     const dToNext = nextPeriod ? daysBetween(today, nextPeriod) : null;
-    const dFromStart = startValid ? Math.max(0, daysBetween(startValid, today)) : null;
+    const dFromStart = startValid
+      ? Math.max(0, daysBetween(startValid, today))
+      : null;
 
     let phase = "Not tracking";
     let hint = "Add last period start to unlock insights.";
@@ -323,7 +335,8 @@ const Profile = () => {
     const sLast = clampNum(sleepLast, 0, 24, 0);
     const mToday = clampNum(movementToday, 0, 500, 0);
 
-    const pct = (a, b) => Math.max(0, Math.min(100, (a / Math.max(1, b)) * 100));
+    const pct = (a, b) =>
+      Math.max(0, Math.min(100, (a / Math.max(1, b)) * 100));
 
     return {
       hGoal,
@@ -336,7 +349,14 @@ const Profile = () => {
       sPct: pct(sLast, sGoal),
       mPct: pct(mToday, mGoal),
     };
-  }, [hydrationGoalMl, sleepGoalHrs, movementGoalMin, hydrationToday, sleepLast, movementToday]);
+  }, [
+    hydrationGoalMl,
+    sleepGoalHrs,
+    movementGoalMin,
+    hydrationToday,
+    sleepLast,
+    movementToday,
+  ]);
 
   const avatarSeed = useMemo(
     () => encodeURIComponent((email || name || "moon").trim()),
@@ -357,13 +377,23 @@ const Profile = () => {
 
   const exportJSON = () => {
     const payload = {
-      profile: { name, email, dateOfBirth, age: userAge, photo: !!photoDataUrl },
+      profile: {
+        name,
+        email,
+        dateOfBirth,
+        age: userAge,
+        photo: !!photoDataUrl,
+      },
       cycle: {
         lastPeriodStart,
         cycleLength: clampNum(cycleLength, 20, 60, 28),
         periodLength: clampNum(periodLength, 2, 10, 5),
-        nextPeriod: cycle.nextPeriod ? new Date(cycle.nextPeriod).toISOString() : null,
-        ovulation: cycle.ovulation ? new Date(cycle.ovulation).toISOString() : null,
+        nextPeriod: cycle.nextPeriod
+          ? new Date(cycle.nextPeriod).toISOString()
+          : null,
+        ovulation: cycle.ovulation
+          ? new Date(cycle.ovulation).toISOString()
+          : null,
         phase: cycle.phase,
       },
       wellness: {
@@ -466,7 +496,9 @@ const Profile = () => {
               layout
               className="md:col-span-8 bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-6 sm:p-8 backdrop-blur-md relative overflow-hidden"
             >
-              <div className={`absolute inset-0 pointer-events-none bg-gradient-to-br ${cycle.tone}`} />
+              <div
+                className={`absolute inset-0 pointer-events-none bg-gradient-to-br ${cycle.tone}`}
+              />
 
               <div className="relative flex flex-col sm:flex-row items-center gap-7 sm:gap-8">
                 <div className="relative">
@@ -524,7 +556,9 @@ const Profile = () => {
                       onChange={(e) => setName(e.target.value)}
                     />
                   ) : (
-                    <h2 className="text-3xl sm:text-4xl font-black mb-1 truncate">{name}</h2>
+                    <h2 className="text-3xl sm:text-4xl font-black mb-1 truncate">
+                      {name}
+                    </h2>
                   )}
 
                   <div className="mt-2 flex items-center justify-center sm:justify-start gap-2 text-xs">
@@ -536,7 +570,9 @@ const Profile = () => {
                     </span>
                     {cycle.dToNext != null && (
                       <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-300 font-black">
-                        {cycle.dToNext >= 0 ? `${cycle.dToNext}d to next` : "Overdue"}
+                        {cycle.dToNext >= 0
+                          ? `${cycle.dToNext}d to next`
+                          : "Overdue"}
                       </span>
                     )}
                   </div>
@@ -576,14 +612,18 @@ const Profile = () => {
                           />
                         </div>
                       ) : (
-                        <span>{userAge != null ? `${userAge} years` : "Not set"}</span>
+                        <span>
+                          {userAge != null ? `${userAge} years` : "Not set"}
+                        </span>
                       )}
                     </Chip>
                   </div>
 
                   <div className="mt-5 flex flex-wrap justify-center sm:justify-start gap-3">
                     <MiniStat
-                      icon={<CalendarDays size={16} className="text-blue-300" />}
+                      icon={
+                        <CalendarDays size={16} className="text-blue-300" />
+                      }
                       label="Next period"
                       value={fmtShort(cycle.nextPeriod)}
                     />
@@ -610,7 +650,9 @@ const Profile = () => {
               </div>
 
               <div className="mt-6">
-                <h3 className="text-2xl font-black text-white mb-1">Privacy Pro</h3>
+                <h3 className="text-2xl font-black text-white mb-1">
+                  Privacy Pro
+                </h3>
                 <p className="text-blue-100/75 text-sm">
                   Stored locally on this device. No server sync here.
                 </p>
@@ -686,8 +728,12 @@ const Profile = () => {
                         <CalendarDays size={18} className="text-blue-300" />
                       </div>
                       <div>
-                        <p className="text-sm font-black text-white">Next period</p>
-                        <p className="text-xs text-slate-400">{fmtShort(cycle.nextPeriod)}</p>
+                        <p className="text-sm font-black text-white">
+                          Next period
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          {fmtShort(cycle.nextPeriod)}
+                        </p>
                       </div>
                     </div>
                     <LucideChevronRight className="text-slate-400" size={18} />
@@ -717,14 +763,18 @@ const Profile = () => {
                       min={0}
                       max={Math.max(1000, wellness.hGoal)}
                       value={wellness.hToday}
-                      onChange={(v) => setHydrationToday(clampNum(v, 0, 8000, 0))}
+                      onChange={(v) =>
+                        setHydrationToday(clampNum(v, 0, 8000, 0))
+                      }
                     />
                     <RangeRow
                       label="Goal (ml)"
                       min={1000}
                       max={5000}
                       value={wellness.hGoal}
-                      onChange={(v) => setHydrationGoalMl(clampNum(v, 1000, 5000, 2200))}
+                      onChange={(v) =>
+                        setHydrationGoalMl(clampNum(v, 1000, 5000, 2200))
+                      }
                     />
                   </div>
                 ) : null}
@@ -781,7 +831,9 @@ const Profile = () => {
                       min={5}
                       max={180}
                       value={wellness.mGoal}
-                      onChange={(v) => setMovementGoalMin(clampNum(v, 5, 180, 30))}
+                      onChange={(v) =>
+                        setMovementGoalMin(clampNum(v, 5, 180, 30))
+                      }
                     />
                   </div>
                 ) : null}
@@ -795,10 +847,15 @@ const Profile = () => {
                   </div>
                   <p className="text-sm font-black text-emerald-200 truncate">
                     Tip for {cycle.phase}:{" "}
-                    <span className="font-medium text-emerald-100/90">{cycle.hint}</span>
+                    <span className="font-medium text-emerald-100/90">
+                      {cycle.hint}
+                    </span>
                   </p>
                 </div>
-                <LucideChevronRight size={18} className="text-emerald-400 shrink-0" />
+                <LucideChevronRight
+                  size={18}
+                  className="text-emerald-400 shrink-0"
+                />
               </div>
             </motion.section>
 
@@ -807,7 +864,9 @@ const Profile = () => {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h3 className="text-xl font-black">Preferences</h3>
-                  <p className="text-xs text-slate-400 mt-1">Persisted toggles.</p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Persisted toggles.
+                  </p>
                 </div>
                 <span className="text-xs text-slate-400">Tap to toggle</span>
               </div>
@@ -865,20 +924,26 @@ const Profile = () => {
                 icon={<ShieldCheck size={22} className="text-blue-300" />}
                 title="Privacy controls"
                 subtitle="Permissions and data sharing"
-                right={<LucideChevronRight size={18} className="text-slate-400" />}
+                right={
+                  <LucideChevronRight size={18} className="text-slate-400" />
+                }
               />
               <ActionCard
                 icon={<Download size={22} className="text-blue-300" />}
                 title="Export my data"
                 subtitle="Download JSON export"
                 onClick={exportJSON}
-                right={<LucideChevronRight size={18} className="text-slate-400" />}
+                right={
+                  <LucideChevronRight size={18} className="text-slate-400" />
+                }
               />
               <ActionCard
                 icon={<HelpCircle size={22} className="text-blue-300" />}
                 title="Help & support"
                 subtitle="FAQs and contact"
-                right={<LucideChevronRight size={18} className="text-slate-400" />}
+                right={
+                  <LucideChevronRight size={18} className="text-slate-400" />
+                }
               />
             </motion.section>
 
@@ -994,7 +1059,9 @@ const MetricInput = ({
         <p className="text-slate-400 text-sm font-black">{label}</p>
       </div>
 
-      <div className={`flex items-center gap-2 font-mono text-xl ${accentColor}`}>
+      <div
+        className={`flex items-center gap-2 font-mono text-xl ${accentColor}`}
+      >
         {isEditing ? (
           <input
             type={type}
@@ -1006,7 +1073,9 @@ const MetricInput = ({
           <span className="font-black">{value || "Not set"}</span>
         )}
         {unit ? (
-          <span className="text-xs uppercase font-sans text-slate-500">{unit}</span>
+          <span className="text-xs uppercase font-sans text-slate-500">
+            {unit}
+          </span>
         ) : null}
       </div>
     </div>
@@ -1020,12 +1089,22 @@ const SoftKV = ({ k, v }) => (
   </div>
 );
 
-const BentoCard = ({ icon, title, value, sub, editing, className = "", children }) => (
+const BentoCard = ({
+  icon,
+  title,
+  value,
+  sub,
+  editing,
+  className = "",
+  children,
+}) => (
   <div
     className={`bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-6 group hover:bg-white/[0.06] transition-colors ${className}`}
   >
     {icon}
-    <span className="block text-slate-400 text-sm font-black mb-1">{title}</span>
+    <span className="block text-slate-400 text-sm font-black mb-1">
+      {title}
+    </span>
     <div className="flex items-end justify-between gap-3">
       <div>
         <span className="text-3xl font-black">{value}</span>
@@ -1073,7 +1152,9 @@ const PrefTile = ({ icon, title, subtitle, on, onClick, lock }) => (
   >
     <div className="flex items-start justify-between gap-3">
       <div className="flex items-center gap-3">
-        <div className="rounded-2xl bg-white/5 border border-white/10 p-2">{icon}</div>
+        <div className="rounded-2xl bg-white/5 border border-white/10 p-2">
+          {icon}
+        </div>
         <div className="min-w-0">
           <p className="text-sm font-black text-white truncate">{title}</p>
           <p className="text-xs text-slate-400 mt-1 truncate">{subtitle}</p>
@@ -1081,7 +1162,9 @@ const PrefTile = ({ icon, title, subtitle, on, onClick, lock }) => (
       </div>
       <div
         className={`relative h-6 w-12 rounded-full border transition ${
-          on ? "bg-blue-600/70 border-blue-500/20" : "bg-black/20 border-white/10"
+          on
+            ? "bg-blue-600/70 border-blue-500/20"
+            : "bg-black/20 border-white/10"
         }`}
       >
         <div
@@ -1100,7 +1183,9 @@ const ActionCard = ({ icon, title, subtitle, right, onClick }) => (
     className="bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-6 hover:bg-white/[0.06] transition flex items-center justify-between gap-4"
   >
     <div className="flex items-center gap-3 min-w-0">
-      <div className="rounded-2xl bg-white/5 border border-white/10 p-3">{icon}</div>
+      <div className="rounded-2xl bg-white/5 border border-white/10 p-3">
+        {icon}
+      </div>
       <div className="min-w-0 text-left">
         <p className="text-sm font-black text-white truncate">{title}</p>
         <p className="text-xs text-slate-400 mt-1 truncate">{subtitle}</p>
