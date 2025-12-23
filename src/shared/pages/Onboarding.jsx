@@ -1,12 +1,14 @@
 import { IonPage, IonContent, IonIcon } from "@ionic/react";
 import { logoGoogle, logoFacebook, logoTwitter } from "ionicons/icons";
 import { useState, useCallback } from "react";
+import { useHistory } from "react-router-dom";
 import { useQuestionnaireFlow } from "@/domains/health/hooks/useQuestionnaireFlow.js";
 import { storageService } from "@/infrastructure/storage/storageService.js";
 import ComprehensiveQuestionnaireModal from "@/domains/health/components/ComprehensiveQuestionnaireModal.jsx";
 // Silk component removed - using CSS gradient instead for better performance
 
 const Onboarding = () => {
+  const history = useHistory();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -19,7 +21,7 @@ const Onboarding = () => {
     closeQuestionnaire,
     handleQuestionnaireComplete,
   } = useQuestionnaireFlow();
-
+// login handler
   const handleLogin = useCallback(async () => {
     if (!email.trim() || !password.trim()) {
       return alert("Please enter both email and password");
@@ -36,6 +38,7 @@ const Onboarding = () => {
       userProfile.onboardingStartedAt = new Date().toISOString().split("T")[0];
       storageService.userProfileService.save(userProfile);
 
+      // Open questionnaire modal (DON'T mark onboarding as complete yet)
       setStep("questionnaire");
       openQuestionnaire();
     } catch (error) {
@@ -49,17 +52,34 @@ const Onboarding = () => {
   const handleQuestionnairesComplete = useCallback(
     async (answers) => {
       try {
+        console.log("Questionnaire completed with answers:", answers);
+        
+        // Save questionnaire answers using the hook
         handleQuestionnaireComplete(answers);
+        
+        // Mark onboarding as complete in storage
         storageService.onboardingService.markComplete();
+        console.log("Onboarding marked complete");
+        
+        // Close the questionnaire modal first
+        closeQuestionnaire();
+        console.log("Questionnaire modal closed");
+        
+        // Dispatch custom event to trigger AppRouter re-check
+        window.dispatchEvent(new Event("onboarding-complete"));
+        console.log("Onboarding complete event dispatched");
+        
+        // Then navigate to health page after a brief delay to ensure state updates
         setTimeout(() => {
-          window.location.href = "/health";
-        }, 500);
+          console.log("Navigating to /health");
+          history.push("/health");
+        }, 300);
       } catch (error) {
         console.error("Error completing onboarding:", error);
         alert("Error saving your information. Please try again.");
       }
     },
-    [handleQuestionnaireComplete]
+    [handleQuestionnaireComplete, closeQuestionnaire, history]
   );
 
   return (

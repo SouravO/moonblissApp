@@ -15,6 +15,7 @@ import Activities from "@/shared/pages/Activities";
 import BottomNav from "@/shared/layout/BottomNav";
 import Quiz from "../../shared/pages/Quiz";
 import Calendar from "../../domains/health/components/Calendar";
+import Card from "../../domains/health/pages/Cards";
 
 const AppRouter = () => {
   const [ready, setReady] = useState(false);
@@ -22,9 +23,38 @@ const AppRouter = () => {
   const [onboarded, setOnboarded] = useState(false);
 
   useEffect(() => {
-    setLoggedIn(storageService.userProfileService.exists());
-    setOnboarded(storageService.onboardingService.isComplete());
-    setReady(true);
+    const checkAuth = () => {
+      const isLoggedIn = storageService.userProfileService.exists();
+      const isOnboarded = storageService.onboardingService.isComplete();
+      
+      console.log("Auth check - loggedIn:", isLoggedIn, "onboarded:", isOnboarded);
+      
+      setLoggedIn(isLoggedIn);
+      setOnboarded(isOnboarded);
+      setReady(true);
+    };
+
+    checkAuth();
+
+    // Listen for storage changes (logout from another tab or component)
+    const handleStorageChange = () => {
+      console.log("Storage changed - rechecking auth");
+      checkAuth();
+    };
+
+    // Custom event for onboarding completion
+    const handleOnboardingComplete = () => {
+      console.log("Onboarding complete event triggered");
+      checkAuth();
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("onboarding-complete", handleOnboardingComplete);
+    
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("onboarding-complete", handleOnboardingComplete);
+    };
   }, []);
 
   if (!ready) return null;
@@ -60,6 +90,8 @@ const MainRouterContent = () => {
         <Route exact path="/health" component={HealthHome} />
         <Route exact path="/activities" component={Activities} />
         <Route exact path="/music" component={Music} />
+        <Route exact path ="/login" component={Onboarding} />
+        <Route exact path="/card" component={Card} />
         {/* quiz */}
         {/* <Route exact path="/quiz" component={Quiz} /> */}
         <Route exact path="/shop" component={CommerceHome} />
@@ -67,7 +99,7 @@ const MainRouterContent = () => {
         <Route exact path="/profile" component={Profile} />
 
         <Route exact path="/">
-          <Redirect to="/health" />
+          <Redirect to="/card" />
         </Route>
       </IonRouterOutlet>
 

@@ -1,7 +1,9 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useHistory } from "react-router-dom";
 import PageLayout from "@/shared/layout/PageLayout";
 import ColorBg from "@/components/ColorBg";
+import { storageService } from "@/infrastructure/storage/storageService";
 import {
   LogOut,
   Mail,
@@ -94,6 +96,8 @@ const daysBetween = (a, b) => {
 
 /* --------------------------- Main --------------------------- */
 const Profile = () => {
+  const history = useHistory();
+
   // Profile (editable + persistent)
   const [name, setName] = usePersistentState("mb_profile_name", "Alex Rivera");
   const [email, setEmail] = usePersistentState(
@@ -163,6 +167,62 @@ const Profile = () => {
   });
 
   const [isEditing, setIsEditing] = useState(false);
+
+  /* --------------------------- Logout --------------------------- */
+  const logout = (mode = "wipe_data") => {
+    try {
+      console.log("Logging out - mode:", mode);
+      
+      // Use storageService to properly clear all data
+      if (mode === "wipe_data") {
+        storageService.clearAllData();
+      } else {
+        // Just clear auth but keep some profile data
+        storageService.onboardingService.reset();
+      }
+      
+      // Also clear all custom localStorage keys that might be in use
+      const keysToRemove = [
+        "moonbliss_period_data",
+        "mb_profile_name",
+        "mb_profile_email",
+        "mb_profile_dob",
+        "mb_profile_age_manual",
+        "mb_profile_photo",
+        "mb_cycle_last_start",
+        "mb_cycle_length",
+        "mb_period_length",
+        "mb_goal_hydration",
+        "mb_goal_sleep",
+        "mb_goal_move",
+        "mb_today_hydration",
+        "mb_last_sleep",
+        "mb_today_move",
+        "mb_prefs_v3",
+      ];
+      
+      keysToRemove.forEach((key) => {
+        try {
+          localStorage.removeItem(key);
+        } catch {
+          // ignore individual key removal errors
+        }
+      });
+      
+      console.log("Data cleared, dispatching logout event");
+      
+      // Dispatch custom event to trigger AppRouter re-check
+      window.dispatchEvent(new Event("onboarding-complete"));
+      
+      // Redirect to onboarding/login page
+      setTimeout(() => {
+        history.push("/");
+        window.location.reload();
+      }, 300);
+    } catch (error) {
+      console.error("Error during logout:", error);
+    }
+  };
 
   /* --------------------------- Photo upload helpers --------------------------- */
   const MAX_BYTES = 900_000; // ~0.9MB (localStorage safety)
@@ -438,28 +498,7 @@ const Profile = () => {
 
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-12">
           {/* Header */}
-          <header className="flex items-start justify-between mb-10 sm:mb-12">
-            {/* <div>
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="flex items-center gap-3 mb-2"
-              >
-                <div className="h-1 w-12 bg-blue-500 rounded-full" />
-                <span className="text-blue-400 font-bold tracking-widest text-xs uppercase">
-                  Dashboard
-                </span>
-              </motion.div>
-
-              <h1 className="text-4xl sm:text-5xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-400">
-                Personal <span className="text-blue-500">Core</span>
-              </h1>
-
-              <p className="mt-3 text-sm text-slate-400">
-                Edit mode updates everything. Data persists after refresh.
-              </p>
-            </div> */}
-
+          <header className="flex items-start justify-end mb-10 sm:mb-12">
             <div className="flex gap-2">
               {/* Customize Button */}
               <motion.button
@@ -485,6 +524,17 @@ const Profile = () => {
                 title="Export Profile"
               >
                 <Download size={20} />
+              </motion.button>
+
+              {/* Logout Button */}
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => logout("wipe_data")}
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-red-500/15 hover:bg-red-500/25 text-red-300 border border-red-500/25 transition-all"
+                title="Logout"
+              >
+                <LogOut size={20} />
               </motion.button>
             </div>
           </header>
@@ -540,7 +590,6 @@ const Profile = () => {
                     </div>
                   ) : null}
 
-                  {/* Tiny note if too large: silent fail, show hint */}
                   {isEditing ? (
                     <p className="mt-2 text-[11px] text-slate-500 text-center sm:text-left">
                       Tip: Use a small image. Stored locally on device.
@@ -728,9 +777,7 @@ const Profile = () => {
                         <CalendarDays size={18} className="text-blue-300" />
                       </div>
                       <div>
-                        <p className="text-sm font-black text-white">
-                          Next period
-                        </p>
+                        <p className="text-sm font-black text-white">Next period</p>
                         <p className="text-xs text-slate-400">
                           {fmtShort(cycle.nextPeriod)}
                         </p>
@@ -947,7 +994,7 @@ const Profile = () => {
               />
             </motion.section>
 
-            {/* 7) Dangerous / Logout */}
+            {/* 7) Dangerous / Logout */} 
             <motion.section className="md:col-span-12 flex flex-col sm:flex-row gap-4 mt-2">
               <button
                 onClick={wipeLocal}
@@ -958,33 +1005,10 @@ const Profile = () => {
               </button>
 
               <button
-                onClick={() => {
-                  try {
-                    [
-                      "mb_profile_name",
-                      "mb_profile_email",
-                      "mb_profile_dob",
-                      "mb_profile_age_manual",
-                      "mb_profile_photo",
-                      "mb_cycle_last_start",
-                      "mb_cycle_length",
-                      "mb_period_length",
-                      "mb_goal_hydration",
-                      "mb_goal_sleep",
-                      "mb_goal_move",
-                      "mb_today_hydration",
-                      "mb_last_sleep",
-                      "mb_today_move",
-                      "mb_prefs_v3",
-                    ].forEach((k) => localStorage.removeItem(k));
-                  } catch {
-                    // ignore
-                  }
-                  window.location.reload();
-                }}
-                className="flex-1 flex items-center justify-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 py-5 rounded-[2rem] font-black transition-all"
+                onClick={() => logout("wipe_data")}
+                className="flex-1 flex items-center justify-center gap-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 py-5 rounded-[2rem] font-black transition-all"
               >
-                <Lock size={20} className="text-blue-300" />
+                <LogOut size={20} />
                 Logout (clear app data)
               </button>
             </motion.section>
