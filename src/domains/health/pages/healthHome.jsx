@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import PageLayout from "@/shared/layout/PageLayout";
 import { getUserData } from "@/infrastructure/storage/onboarding";
 import { usePeriodPrediction } from "@/domains/health/hooks/usePeriodPrediction";
+import { storageService } from "@/infrastructure/storage/storageService";
+import periodStorage from "@/infrastructure/storage/periodStorage";
 import { motion } from "framer-motion";
 import ColorBg from "@/components/ColorBg";
-import { IonToggle } from "@ionic/react";
 
 import {
   Bell,
@@ -85,42 +86,113 @@ const FloatingWellnessIcons = React.memo(function FloatingWellnessIcons() {
 });
 
 const HealthHome = () => {
-  // Period toggle and date picker state
-  const [periodOn, setPeriodOn] = useState(() => {
-    // If a period start date is set, toggle is ON
-    return Boolean(localStorage.getItem("periodStartDate"));
-  });
+  // Period tracking state
   const [showPeriodModal, setShowPeriodModal] = useState(false);
-  const [periodDate, setPeriodDate] = useState(() => {
-    // Load from localStorage if exists
-    const d = localStorage.getItem("periodStartDate");
-    return d ? d : "";
-  });
+  const [showPeriodConfirm, setShowPeriodConfirm] = useState(false);
+  const [periodStartDate, setPeriodStartDate] = useState(""); // For the modal input
+  const [refreshTrigger, setRefreshTrigger] = useState(0); // Trigger re-renders
+
+  // Calculate period active state based on saved data
+  const periodState = useMemo(() => {
+    const periodData = periodStorage.get();
+    if (!periodData?.lastPeriodDate) {
+      return { periodActive: false, savedPeriodStartDate: "", periodDuration: 5 };
+    }
+
+    const startDate = new Date(periodData.lastPeriodDate);
+    const today = new Date();
+    const daysElapsed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+    const periodDuration = periodData.periodDuration || 5;
+
+    // Period is active if within the period duration
+    const isActive = daysElapsed < periodDuration;
+
+    return {
+      periodActive: isActive,
+      savedPeriodStartDate: periodData.lastPeriodDate,
+      daysElapsed,
+      periodDuration,
+    };
+  }, [refreshTrigger]); // Re-calculate when refresh trigger changes
+
+  const { periodActive, savedPeriodStartDate, periodDuration } = periodState;
+
+  // Check if period should auto-toggle OFF based on duration
+  useEffect(() => {
+    if (!periodActive || !savedPeriodStartDate) return;
+
+    // Set a timer to check daily if period should auto-turn off
+    const timer = setInterval(() => {
+      const periodData = periodStorage.get();
+      if (!periodData?.lastPeriodDate) return;
+
+      const startDate = new Date(periodData.lastPeriodDate);
+      const today = new Date();
+      const daysElapsed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+      const periodDuration = periodData.periodDuration || 5;
+
+      // If period duration has passed, trigger refresh to recalculate
+      if (daysElapsed >= periodDuration) {
+        console.log(
+          `Period duration (${periodDuration} days) has passed. Auto-toggling off.`
+        );
+        setRefreshTrigger((prev) => prev + 1);
+      }
+    }, 60000); // Check every minute
+
+    return () => clearInterval(timer);
+  }, [periodActive, savedPeriodStartDate, periodDuration]);
 
   // Handle toggle change
-  const handlePeriodToggle = (e) => {
-    const checked = e.detail ? e.detail.checked : e.target.checked;
-    setPeriodOn(checked);
-    if (checked) {
-      setShowPeriodModal(true);
+  const handlePeriodToggle = () => {
+    if (periodActive) {
+      // If already active, turn it off by clearing the period data
+      periodStorage.clear();
+      setRefreshTrigger((prev) => prev + 1);
+      console.log("Period turned off");
     } else {
-      // Optionally clear date if toggled off
-      // localStorage.removeItem("periodStartDate");
+      // If not active, show confirmation dialog
+      setShowPeriodConfirm(true);
     }
   };
 
-  // Handle date selection
-  const handleDateSelect = (e) => {
-    const date = e.target.value;
-    setPeriodDate(date);
+  // Confirm starting period
+  const confirmStartPeriod = () => {
+    setShowPeriodConfirm(false);
+    setShowPeriodModal(true);
   };
 
-  // Save date to localStorage and close modal
+  // Save period start date
   const savePeriodDate = () => {
-    if (periodDate) {
-      localStorage.setItem("periodStartDate", periodDate);
+    if (periodStartDate) {
+      console.log("Saving period start date:", periodStartDate);
+      
+      // Get current period data to preserve cycle/duration info
+      const currentPeriodData = periodStorage.get();
+      
+      // Update with new period date - this becomes the new reference point
+      periodStorage.update({
+        lastPeriodDate: periodStartDate,
+        avgCycleLength: currentPeriodData.avgCycleLength || 28,
+        periodDuration: currentPeriodData.periodDuration || 5,
+      });
+
+      console.log("Period data updated, triggering refresh");
+      
+      // Close modal
       setShowPeriodModal(false);
+    // reload page
+      window.location.reload();
+
+      // Trigger re-calculation of periodState and re-render of all predictions
+      setRefreshTrigger((prev) => prev + 1);
     }
+  };
+
+  // Cancel modal
+  const cancelPeriodModal = () => {
+    setShowPeriodModal(false);
+    setPeriodStartDate(""); // Clear the date input
   };
 
   const userData = getUserData();
@@ -128,55 +200,54 @@ const HealthHome = () => {
   const { nextPeriod, currentPhase } = usePeriodPrediction();
   const { title, subtitle, tips } = menstrualNutritionTips;
   const [nutritionModal, setNutritionModal] = useState(false);
-  const [notifStatus, setNotifStatus] = useState("Tap to test");
 
   // Test notification function - lazy loads Capacitor to prevent crash
   const testNotification = async () => {
     try {
-      setNotifStatus("Loading...");
+      console.log("Testing notifications...");
 
       // Lazy load Capacitor modules
       let Capacitor, LocalNotifications;
       try {
         const capacitorCore = await import("@capacitor/core");
         Capacitor = capacitorCore.Capacitor;
-      } catch (e) {
-        setNotifStatus("❌ Capacitor not available");
+      } catch (error) {
+        console.error("Capacitor not available:", error);
         return;
       }
 
       // Check if native platform
       const isNative = Capacitor.isNativePlatform();
       if (!isNative) {
-        setNotifStatus("❌ Not native platform (run on phone)");
+        console.log("Not native platform (run on phone)");
         return;
       }
 
       try {
         const notifModule = await import("@capacitor/local-notifications");
         LocalNotifications = notifModule.LocalNotifications;
-      } catch (e) {
-        setNotifStatus("❌ LocalNotifications not available");
+      } catch (error) {
+        console.error("LocalNotifications not available:", error);
         return;
       }
 
-      setNotifStatus("Checking permission...");
+      console.log("Checking permissions...");
 
       // Check permission
       const permCheck = await LocalNotifications.checkPermissions();
 
       if (permCheck.display !== "granted") {
-        setNotifStatus("Requesting permission...");
+        console.log("Requesting permissions...");
         const permReq = await LocalNotifications.requestPermissions();
 
         if (permReq.display !== "granted") {
-          setNotifStatus("❌ Permission denied - enable in Settings");
+          console.log("Permission denied - enable in Settings");
           return;
         }
       }
 
       // Schedule notification
-      setNotifStatus("Sending...");
+      console.log("Scheduling test notification...");
       await LocalNotifications.schedule({
         notifications: [
           {
@@ -189,9 +260,8 @@ const HealthHome = () => {
         ],
       });
 
-      setNotifStatus(`✅ Done! Check notification in 2 sec`);
+      console.log("Notification scheduled successfully");
     } catch (error) {
-      setNotifStatus(`❌ ${error.message || "Unknown error"}`);
       console.error("Notification test error:", error);
     }
   };
@@ -226,7 +296,7 @@ const HealthHome = () => {
   const randomTip = useMemo(() => {
     if (!tips?.length) return null;
     return tips[Math.floor(Math.random() * tips.length)];
-  }, [tips, nutritionModal]); // refresh when modal opens
+  }, [tips]); // refresh when tips change
 
   return (
     <PageLayout>
@@ -262,14 +332,71 @@ const HealthHome = () => {
                 </p>
               </div>
 
-              <button className="w-11 h-11 rounded-2xl bg-white/80 border border-slate-200 shadow-sm flex items-center justify-center hover:bg-white transition">
-                <Bell className="w-5 h-5 text-slate-600" />
-              </button>
-              {/* toggle button in ionic */}
-              {/* <IonToggle  /> */}
+              <div className="flex items-center gap-3">
+                {/* Period Toggle Switch - Custom */}
+                <motion.button
+                  onClick={() => handlePeriodToggle()}
+                  className={`relative inline-flex h-8 w-16 items-center rounded-full transition-colors ${
+                    periodActive ? "bg-red-600" : "bg-slate-300"
+                  }`}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <motion.div
+                    className="absolute h-6 w-6 rounded-full bg-white shadow-md"
+                    animate={{ x: periodActive ? 32 : 4 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
+                  <span className="absolute inset-0 flex items-center justify-center text-xs font-semibold">
+                    <span className={`absolute ${periodActive ? "left-1" : "right-1"} text-white`}>
+                      {periodActive ? "ON" : "OFF"}
+                    </span>
+                  </span>
+                </motion.button>
+
+                {/* Notification Button */}
+                <button className="w-11 h-11 rounded-2xl bg-white/80 border border-slate-200 shadow-sm flex items-center justify-center hover:bg-white transition">
+                  <Bell className="w-5 h-5 text-slate-600" />
+                </button>
+              </div>
             </div>
           </div>
         </motion.header>
+
+        {/* Period Confirmation Modal */}
+        {showPeriodConfirm && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50">
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              className="bg-white rounded-3xl p-6 max-w-md w-full mx-4 border border-slate-200 shadow-xl"
+            >
+              <div className="mb-4">
+                <h2 className="text-xl font-semibold text-slate-900">
+                  Are you on your period?
+                </h2>
+                <p className="text-sm text-slate-500 mt-2">
+                  Let us know when your period started so we can track your cycle and provide personalized insights.
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  className="flex-1 px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 transition"
+                  onClick={() => setShowPeriodConfirm(false)}
+                >
+                  Not Now
+                </button>
+                <button
+                  className="flex-1 px-4 py-3 rounded-2xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition"
+                  onClick={() => confirmStartPeriod()}
+                >
+                  Yes, Track It
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
 
         {/* Nutrition Modal */}
         {nutritionModal && (
@@ -313,6 +440,67 @@ const HealthHome = () => {
                   onClick={() => setNutritionModal(true)}
                 >
                   Another tip
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Period Date Picker Modal */}
+        {showPeriodModal && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50">
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              className="bg-white rounded-3xl p-6 max-w-md w-full mx-4 border border-slate-200 shadow-xl"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-900">
+                    Period Start Date
+                  </h2>
+                  <p className="text-sm text-slate-500 mt-1">
+                    When did your period start?
+                  </p>
+                </div>
+                <button
+                  className="px-3 py-1.5 rounded-xl border border-slate-200 text-sm text-slate-700 hover:bg-slate-50"
+                  onClick={() => cancelPeriodModal()}
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-red-50 to-white border border-red-100">
+                <label className="block text-sm font-medium text-slate-900 mb-2">
+                  Select Date
+                </label>
+                <input
+                  type="date"
+                  value={periodStartDate}
+                  onChange={(e) => setPeriodStartDate(e.target.value)}
+                  className="w-full px-4 py-2 rounded-xl border border-slate-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+                {periodStartDate && (
+                  <p className="text-xs text-slate-500 mt-2">
+                    You're on day {Math.floor((new Date() - new Date(periodStartDate)) / (1000 * 60 * 60 * 24)) + 1} of your period
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-4 flex gap-2">
+                <button
+                  className="flex-1 px-4 py-2 rounded-2xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => savePeriodDate()}
+                  disabled={!periodStartDate}
+                >
+                  Save Period
+                </button>
+                <button
+                  className="flex-1 px-4 py-2 rounded-2xl bg-white border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 transition"
+                  onClick={() => cancelPeriodModal()}
+                >
+                  Cancel
                 </button>
               </div>
             </motion.div>
