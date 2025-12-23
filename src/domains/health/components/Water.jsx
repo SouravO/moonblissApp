@@ -50,16 +50,47 @@ const WATER_TIPS = [
   },
 ];
 
+const getTodayKey = () => {
+  const today = new Date();
+  return today.toISOString().slice(0, 10); // YYYY-MM-DD
+};
+
 const Water = ({ className = "" }) => {
   const [showModal, setShowModal] = useState(false);
+  const [count, setCount] = useState(() => {
+    const key = getTodayKey();
+    return parseInt(localStorage.getItem("waterCount-" + key)) || 0;
+  });
 
   const handleOpen = () => setShowModal(true);
   const handleClose = () => setShowModal(false);
-  const addCount = () => {
-    let count = localStorage.getItem("waterCount") || 0;
-    count = parseInt(count) + 1;
-    localStorage.setItem("waterCount", count);
-    alert(`Great! You've logged ${count} glasses of water today.`);
+
+  const handleYes = async () => {
+    const key = getTodayKey();
+    const newCount = count + 1;
+    setCount(newCount);
+    localStorage.setItem("waterCount-" + key, newCount);
+
+    // Schedule local notification for 10 seconds later
+    try {
+      const { LocalNotifications } = await import("@capacitor/local-notifications");
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: Math.floor(Math.random() * 90000) + 10000,
+            title: "Hydration Reminder",
+            body: "Time to drink another glass of water!",
+            schedule: { at: new Date(Date.now() + 10000) },
+            sound: undefined,
+            actionTypeId: undefined,
+            extra: null,
+          },
+        ],
+      });
+    } catch (e) {
+      // Fail silently on web or if plugin not available
+      // Optionally, you can console.warn(e);
+    }
   };
 
   return (
@@ -86,7 +117,7 @@ const Water = ({ className = "" }) => {
             <Droplets className="w-5 h-5" />
           </motion.div>
           <span className="text-xs text-slate-500 bg-blue-100 px-2 py-1 rounded-full">
-            Tips
+            {count > 0 ? `${count} glass${count > 1 ? "es" : ""}` : "Tips"}
           </span>
         </div>
 
@@ -122,9 +153,9 @@ const Water = ({ className = "" }) => {
                       <Droplets className="w-6 h-6" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-bold">Hydration Tips</h2>
+                      <h2 className="text-xl font-bold">Hydration</h2>
                       <p className="text-blue-100 text-sm">
-                        Stay healthy & refreshed
+                        Have you drunk water?
                       </p>
                     </div>
                   </div>
@@ -137,13 +168,34 @@ const Water = ({ className = "" }) => {
                 </div>
               </div>
 
-              {/* content - a button when pressed will calculate a dink water   */}
-              <button
-                className="flex justify-center items-center"
-                onClick={addCount()}
-              >
-                Done
-              </button>
+              {/* Modal content: Yes/No buttons */}
+              <div className="flex flex-col items-center justify-center py-8 gap-4">
+                <span className="text-lg font-medium text-slate-700">
+                  Have you drunk water?
+                </span>
+                <div className="flex gap-4 mt-2">
+                  <button
+                    onClick={async () => {
+                      await handleYes();
+                      handleClose();
+                    }}
+                    className="px-6 py-2 rounded-xl bg-blue-500 text-white font-semibold hover:bg-blue-600 transition"
+                  >
+                    Yes
+                  </button>
+                  <button
+                    onClick={handleClose}
+                    className="px-6 py-2 rounded-xl bg-slate-200 text-slate-700 font-semibold hover:bg-slate-300 transition"
+                  >
+                    No
+                  </button>
+                </div>
+                <div className="mt-4 text-sm text-slate-500">
+                  Today:{" "}
+                  <span className="font-bold text-blue-700">{count}</span> glass
+                  {count !== 1 ? "es" : ""} logged
+                </div>
+              </div>
 
               {/* Footer */}
               <div className="p-4 border-t border-slate-100">
