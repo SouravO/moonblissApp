@@ -49,6 +49,10 @@ const CommerceHome = () => {
   const [toast, setToast] = useState(null); // { title, body }
   const [flashBadge, setFlashBadge] = useState(false);
 
+  // Add to Cart modal
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addQty, setAddQty] = useState(1);
+
   // Button system (green primary + clean secondary + consistent icon buttons)
   const btnBase =
     "inline-flex items-center justify-center gap-2 whitespace-nowrap select-none " +
@@ -92,9 +96,25 @@ const CommerceHome = () => {
   );
 
   const cartSubtotal = useMemo(
-    () => cartItems.reduce((sum, it) => sum + (it.price || 0) * (it.qty || 0), 0),
+    () =>
+      cartItems.reduce((sum, it) => sum + (it.price || 0) * (it.qty || 0), 0),
     [cartItems]
   );
+
+  // cart
+  const cart = useCallback(() => {
+    if (!cartItems.length) return;
+    const itemsText = cartItems
+      .map(
+        (item) =>
+          `${item.title} × ${item.qty} = ${fmtINR(item.price * item.qty)}`
+      )
+      .join("%0A");
+    const totalText = `Total: ${fmtINR(cartSubtotal)}`;
+    const message = `Hello, I would like to order:%0A${itemsText}%0A${totalText}`;
+    const phone = "8921406772"; // Add your WhatsApp number here, e.g. "919999999999"
+    window.open(`https://wa.me/${phone}?text=${message}`, "_blank");
+  }, [cartItems, cartSubtotal]);
 
   // Auto-slide
   useEffect(() => {
@@ -109,7 +129,9 @@ const CommerceHome = () => {
   }, [product.images.length]);
 
   const prevSlide = useCallback(() => {
-    setCurrentSlide((prev) => (prev - 1 + product.images.length) % product.images.length);
+    setCurrentSlide(
+      (prev) => (prev - 1 + product.images.length) % product.images.length
+    );
   }, [product.images.length]);
 
   const showToast = useCallback((title, body) => {
@@ -147,7 +169,9 @@ const CommerceHome = () => {
 
   const incQty = useCallback(
     (id) => {
-      setCartItems((prev) => prev.map((x) => (x.id === id ? { ...x, qty: x.qty + 1 } : x)));
+      setCartItems((prev) =>
+        prev.map((x) => (x.id === id ? { ...x, qty: x.qty + 1 } : x))
+      );
       pulseBadge();
     },
     [pulseBadge]
@@ -189,6 +213,37 @@ const CommerceHome = () => {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // Add to Cart modal logic
+  const openAddModal = useCallback(() => {
+    setAddQty(1);
+    setShowAddModal(true);
+  }, []);
+  const closeAddModal = useCallback(() => setShowAddModal(false), []);
+
+  const confirmAddToCart = useCallback(() => {
+    setCartItems((prev) => {
+      const idx = prev.findIndex((x) => x.id === product.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = { ...next[idx], qty: next[idx].qty + addQty };
+        return next;
+      }
+      return [
+        ...prev,
+        {
+          id: product.id,
+          title: product.title,
+          price: product.price,
+          image: product.images[0],
+          qty: addQty,
+        },
+      ];
+    });
+    pulseBadge();
+    showToast("Added to cart", `${product.title} × ${addQty}`);
+    setShowAddModal(false);
+  }, [product, addQty, pulseBadge, showToast]);
+
   return (
     <PageLayout>
       <ColorBg />
@@ -216,9 +271,13 @@ const CommerceHome = () => {
                 <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/10">
                   <Sparkles className="h-4 w-4 text-purple-200" />
                 </span>
-                <h1 className="text-2xl font-bold tracking-tight text-white">Moonbliss Store</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-white">
+                  Moonbliss Store
+                </h1>
               </div>
-              <p className="text-sm text-white/60">Wellness essentials for you</p>
+              <p className="text-sm text-white/60">
+                Wellness essentials for you
+              </p>
             </div>
 
             {/* Cart button with count + notification pulse */}
@@ -261,7 +320,10 @@ const CommerceHome = () => {
           {/* Sub header chips */}
           <div className="mt-4 flex gap-2 overflow-x-auto no-scrollbar pb-1">
             {[
-              { icon: <ShieldCheck className="h-4 w-4" />, label: "Verified Quality" },
+              {
+                icon: <ShieldCheck className="h-4 w-4" />,
+                label: "Verified Quality",
+              },
               { icon: <Truck className="h-4 w-4" />, label: "24h Dispatch" },
               { icon: <Sparkles className="h-4 w-4" />, label: "New Drops" },
             ].map((c, i) => (
@@ -318,14 +380,20 @@ const CommerceHome = () => {
                     className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-2xl bg-black/35 hover:bg-black/55 ring-1 ring-white/10 flex items-center justify-center backdrop-blur-sm transition"
                     aria-label="Previous image"
                   >
-                    <IonIcon icon={chevronBackOutline} className="text-white text-xl" />
+                    <IonIcon
+                      icon={chevronBackOutline}
+                      className="text-white text-xl"
+                    />
                   </button>
                   <button
                     onClick={nextSlide}
                     className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-2xl bg-black/35 hover:bg-black/55 ring-1 ring-white/10 flex items-center justify-center backdrop-blur-sm transition"
                     aria-label="Next image"
                   >
-                    <IonIcon icon={chevronForwardOutline} className="text-white text-xl" />
+                    <IonIcon
+                      icon={chevronForwardOutline}
+                      className="text-white text-xl"
+                    />
                   </button>
 
                   {/* Pagination Dots */}
@@ -356,7 +424,9 @@ const CommerceHome = () => {
                   >
                     <Heart
                       className={`w-5 h-5 transition-all ${
-                        isFavorite ? "fill-pink-500 text-pink-500" : "text-white"
+                        isFavorite
+                          ? "fill-pink-500 text-pink-500"
+                          : "text-white"
                       }`}
                     />
                   </motion.button>
@@ -384,10 +454,15 @@ const CommerceHome = () => {
                     <div className="flex items-center gap-2 mt-2">
                       <div className="flex gap-1">
                         {[...Array(5)].map((_, i) => (
-                          <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                          <Star
+                            key={i}
+                            className="w-4 h-4 fill-yellow-400 text-yellow-400"
+                          />
                         ))}
                       </div>
-                      <span className="text-sm text-white/55">(2,345 reviews)</span>
+                      <span className="text-sm text-white/55">
+                        (2,345 reviews)
+                      </span>
                     </div>
                   </div>
 
@@ -395,7 +470,9 @@ const CommerceHome = () => {
                   <div className="shrink-0 text-right">
                     <div className="px-3 py-2 rounded-2xl bg-white/5 ring-1 ring-white/10">
                       <p className="text-[11px] text-white/50">Today</p>
-                      <p className="text-lg font-bold text-emerald-200">{fmtINR(product.price)}</p>
+                      <p className="text-lg font-bold text-emerald-200">
+                        {fmtINR(product.price)}
+                      </p>
                     </div>
                     <p className="mt-1 text-xs text-white/35 line-through">
                       {fmtINR(product.compareAt)}
@@ -403,7 +480,9 @@ const CommerceHome = () => {
                   </div>
                 </div>
 
-                <p className="text-sm text-white/70 leading-relaxed">{product.description}</p>
+                <p className="text-sm text-white/70 leading-relaxed">
+                  {product.description}
+                </p>
 
                 {/* Quick Features */}
                 <div className="grid grid-cols-3 gap-2 pt-1">
@@ -417,14 +496,16 @@ const CommerceHome = () => {
                       className="rounded-2xl bg-white/5 ring-1 ring-white/10 p-3 text-center"
                     >
                       <p className="text-[11px] text-white/45">{f.top}</p>
-                      <p className="text-xs font-semibold text-white">{f.bottom}</p>
+                      <p className="text-xs font-semibold text-white">
+                        {f.bottom}
+                      </p>
                     </div>
                   ))}
                 </div>
 
                 {/* Add to Cart */}
                 <motion.button
-                  onClick={addToCart}
+                  onClick={openAddModal}
                   whileHover={{ y: -2 }}
                   whileTap={{ scale: 0.97 }}
                   className={`w-full ${btnPrimary}`}
@@ -436,7 +517,9 @@ const CommerceHome = () => {
                 {/* Secondary actions */}
                 <div className="grid grid-cols-2 gap-3">
                   <button className={`w-full ${btnSecondary}`}>Buy Now</button>
-                  <button className={`w-full ${btnSecondary}`}>Gift This</button>
+                  <button className={`w-full ${btnSecondary}`}>
+                    Gift This
+                  </button>
                 </div>
               </motion.div>
             </div>
@@ -450,7 +533,9 @@ const CommerceHome = () => {
             transition={{ delay: 0.22 }}
             className="rounded-[28px] bg-white/5 ring-1 ring-white/10 backdrop-blur-xl p-4"
           >
-            <h3 className="text-lg font-semibold text-white mb-3">What&apos;s Included</h3>
+            <h3 className="text-lg font-semibold text-white mb-3">
+              What&apos;s Included
+            </h3>
             <div className="space-y-2">
               {[
                 "Premium wellness kit with 5 essential items",
@@ -485,19 +570,44 @@ const CommerceHome = () => {
             transition={{ delay: 0.28 }}
             className="rounded-[28px] bg-white/5 ring-1 ring-white/10 backdrop-blur-xl p-4"
           >
-            <h3 className="text-lg font-semibold text-white mb-3">Why Choose Us</h3>
+            <h3 className="text-lg font-semibold text-white mb-3">
+              Why Choose Us
+            </h3>
 
             <div className="grid grid-cols-2 gap-3">
               {[
-                { emoji: "🌿", title: "100% Natural", text: "No chemicals, purely botanical" },
-                { emoji: "♻️", title: "Eco-Friendly", text: "Sustainable packaging" },
-                { emoji: "⚡", title: "Fast Delivery", text: "Ships in 24 hours" },
-                { emoji: "💯", title: "Quality Assured", text: "Tested and verified" },
+                {
+                  emoji: "🌿",
+                  title: "100% Natural",
+                  text: "No chemicals, purely botanical",
+                },
+                {
+                  emoji: "♻️",
+                  title: "Eco-Friendly",
+                  text: "Sustainable packaging",
+                },
+                {
+                  emoji: "⚡",
+                  title: "Fast Delivery",
+                  text: "Ships in 24 hours",
+                },
+                {
+                  emoji: "💯",
+                  title: "Quality Assured",
+                  text: "Tested and verified",
+                },
               ].map((b, i) => (
-                <div key={i} className="rounded-[22px] p-4 bg-white/5 ring-1 ring-white/10">
+                <div
+                  key={i}
+                  className="rounded-[22px] p-4 bg-white/5 ring-1 ring-white/10"
+                >
                   <div className="text-3xl mb-2">{b.emoji}</div>
-                  <h4 className="font-semibold text-white text-sm mb-1">{b.title}</h4>
-                  <p className="text-xs text-white/55 leading-relaxed">{b.text}</p>
+                  <h4 className="font-semibold text-white text-sm mb-1">
+                    {b.title}
+                  </h4>
+                  <p className="text-xs text-white/55 leading-relaxed">
+                    {b.text}
+                  </p>
                 </div>
               ))}
             </div>
@@ -511,19 +621,37 @@ const CommerceHome = () => {
             transition={{ delay: 0.34 }}
             className="rounded-[28px] bg-white/5 ring-1 ring-white/10 backdrop-blur-xl p-4"
           >
-            <h3 className="text-lg font-semibold text-white mb-3">Customer Reviews</h3>
+            <h3 className="text-lg font-semibold text-white mb-3">
+              Customer Reviews
+            </h3>
 
             <div className="space-y-3">
               {[
-                { name: "Priya", rating: 5, text: "Amazing quality! Highly recommend" },
-                { name: "Ananya", rating: 5, text: "Best purchase ever, great value" },
+                {
+                  name: "Priya",
+                  rating: 5,
+                  text: "Amazing quality! Highly recommend",
+                },
+                {
+                  name: "Ananya",
+                  rating: 5,
+                  text: "Best purchase ever, great value",
+                },
               ].map((review, idx) => (
-                <div key={idx} className="rounded-[22px] bg-black/20 p-4 ring-1 ring-white/10">
+                <div
+                  key={idx}
+                  className="rounded-[22px] bg-black/20 p-4 ring-1 ring-white/10"
+                >
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold text-white text-sm">{review.name}</h4>
+                    <h4 className="font-semibold text-white text-sm">
+                      {review.name}
+                    </h4>
                     <div className="flex gap-1">
                       {[...Array(review.rating)].map((_, i) => (
-                        <Star key={i} className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                        <Star
+                          key={i}
+                          className="w-3 h-3 fill-yellow-400 text-yellow-400"
+                        />
                       ))}
                     </div>
                   </div>
@@ -541,7 +669,9 @@ const CommerceHome = () => {
             transition={{ delay: 0.4 }}
             className="rounded-[28px] bg-white/5 ring-1 ring-white/10 backdrop-blur-xl p-4"
           >
-            <h3 className="text-lg font-semibold text-white mb-3">You Might Also Like</h3>
+            <h3 className="text-lg font-semibold text-white mb-3">
+              You Might Also Like
+            </h3>
 
             <div className="grid grid-cols-2 gap-3">
               {[
@@ -557,11 +687,19 @@ const CommerceHome = () => {
                     setCartItems((prev) => {
                       const found = prev.find((x) => x.id === id);
                       if (found) {
-                        return prev.map((x) => (x.id === id ? { ...x, qty: x.qty + 1 } : x));
+                        return prev.map((x) =>
+                          x.id === id ? { ...x, qty: x.qty + 1 } : x
+                        );
                       }
                       return [
                         ...prev,
-                        { id, title: item.name, price: item.price, image: product.images[0], qty: 1 },
+                        {
+                          id,
+                          title: item.name,
+                          price: item.price,
+                          image: product.images[0],
+                          qty: 1,
+                        },
                       ];
                     });
                     pulseBadge();
@@ -569,8 +707,12 @@ const CommerceHome = () => {
                   }}
                 >
                   <div className="text-3xl mb-2">{item.emoji}</div>
-                  <h4 className="font-semibold text-white text-sm mb-1">{item.name}</h4>
-                  <p className="text-sm font-semibold text-emerald-200">{fmtINR(item.price)}</p>
+                  <h4 className="font-semibold text-white text-sm mb-1">
+                    {item.name}
+                  </h4>
+                  <p className="text-sm font-semibold text-emerald-200">
+                    {fmtINR(item.price)}
+                  </p>
                 </motion.div>
               ))}
             </div>
@@ -587,7 +729,9 @@ const CommerceHome = () => {
               className="fixed left-1/2 -translate-x-1/2 bottom-6 z-[60] w-[min(92vw,420px)]"
             >
               <div className="rounded-2xl bg-black/70 backdrop-blur-xl ring-1 ring-white/10 px-4 py-3">
-                <div className="text-sm font-semibold text-white">{toast.title}</div>
+                <div className="text-sm font-semibold text-white">
+                  {toast.title}
+                </div>
                 <div className="text-xs text-white/60 mt-0.5">{toast.body}</div>
               </div>
             </motion.div>
@@ -611,14 +755,18 @@ const CommerceHome = () => {
                 animate={{ x: 0 }}
                 exit={{ x: 420 }}
                 transition={{ type: "spring", stiffness: 320, damping: 30 }}
-                className="fixed right-0 top-0 z-[80] h-full w-[min(92vw,420px)] bg-[#0B0B10]/95 ring-1 ring-white/10 backdrop-blur-xl"
+                className="fixed right-0 top-0 z-[80] h-1/2 w-[min(92vw,420px)] bg-[#0B0B10]/95 ring-1 ring-white/10 backdrop-blur-xl"
               >
                 <div className="p-4 h-full flex flex-col">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-lg font-bold text-white">Your Cart</div>
+                      <div className="text-lg font-bold text-white">
+                        Your Cart
+                      </div>
                       <div className="text-xs text-white/60">
-                        {cartCount > 0 ? `${cartCount} item(s)` : "Cart is empty"}
+                        {cartCount > 0
+                          ? `${cartCount} item(s)`
+                          : "Cart is empty"}
                       </div>
                     </div>
 
@@ -706,7 +854,9 @@ const CommerceHome = () => {
                   <div className="pt-4 border-t border-white/10 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="text-sm text-white/60">Subtotal</div>
-                      <div className="text-lg font-bold text-white">{fmtINR(cartSubtotal)}</div>
+                      <div className="text-lg font-bold text-white">
+                        {fmtINR(cartSubtotal)}
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
@@ -718,7 +868,7 @@ const CommerceHome = () => {
                         Clear
                       </button>
                       <button
-                        onClick={() => showToast("Demo Checkout", "Proceeding to payment (demo)")}
+                        onClick={() => cart()}
                         disabled={cartItems.length === 0}
                         className={`w-full ${btnPrimary}`}
                       >
@@ -732,6 +882,82 @@ const CommerceHome = () => {
                   </div>
                 </div>
               </motion.aside>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Add to Cart Modal */}
+        <AnimatePresence>
+          {showAddModal && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-[2px]"
+                onClick={closeAddModal}
+              />
+              <motion.div
+                initial={{ y: 60, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 60, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 320, damping: 30 }}
+                className="fixed left-1/2 top-1/2 z-[100] -translate-x-1/2 -translate-y-1/2 bg-[#181A20] rounded-2xl shadow-xl ring-1 ring-white/10 w-[min(92vw,350px)] p-6"
+              >
+                <div className="flex items-center gap-4">
+                  <img
+                    src={product.images[0]}
+                    alt={product.title}
+                    className="h-16 w-16 rounded-xl object-cover ring-1 ring-white/10"
+                  />
+                  <div>
+                    <div className="font-semibold text-white">
+                      {product.title}
+                    </div>
+                    <div className="text-sm text-white/60">
+                      {fmtINR(product.price)} each
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-6 flex items-center justify-between">
+                  <div className="inline-flex items-center gap-2 rounded-2xl bg-black/25 ring-1 ring-white/10 p-1.5">
+                    <button
+                      onClick={() => setAddQty((q) => Math.max(1, q - 1))}
+                      className={miniBtn}
+                      aria-label="Decrease quantity"
+                    >
+                      <Minus className="h-4 w-4 text-white/80" />
+                    </button>
+                    <div className="w-10 text-center text-sm font-semibold text-white">
+                      {addQty}
+                    </div>
+                    <button
+                      onClick={() => setAddQty((q) => q + 1)}
+                      className={miniBtn}
+                      aria-label="Increase quantity"
+                    >
+                      <Plus className="h-4 w-4 text-white/80" />
+                    </button>
+                  </div>
+                  <div className="text-lg font-bold text-white">
+                    {fmtINR(product.price * addQty)}
+                  </div>
+                </div>
+                <div className="mt-6 flex gap-3">
+                  <button
+                    onClick={closeAddModal}
+                    className={`w-1/2 ${btnSecondary}`}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmAddToCart}
+                    className={`w-1/2 ${btnPrimary}`}
+                  >
+                    Done
+                  </button>
+                </div>
+              </motion.div>
             </>
           )}
         </AnimatePresence>
