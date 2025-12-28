@@ -438,172 +438,172 @@ const Activities = () => {
                 </span>
               </div>
 
-              <div className="mt-4 grid grid-cols-1 gap-4">
-                {/* MUSIC */}
-                <motion.button
-                  type="button"
-                  variants={floatIn}
-                  initial="hidden"
-                  animate="visible"
-                  whileHover={{
-                    y: -6,
-                    boxShadow: "0 30px 60px rgba(37, 99, 235, 0.18)",
-                  }}
-                  whileTap={{ scale: 0.96 }}
-                  onClick={() => history.push("/music")}
-                  className="relative overflow-hidden rounded-[32px] bg-white/70 border border-white/70 p-7 text-left backdrop-blur-xl shadow-[0_22px_60px_-35px_rgba(15,23,42,0.35)] group active:scale-95"
-                >
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-blue-600/0 via-blue-600/10 to-blue-600/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                  <div className="pointer-events-none absolute -top-24 -right-24 h-60 w-60 rounded-full bg-blue-300/30 blur-3xl opacity-70" />
+                <div className="mt-4 grid grid-cols-1 gap-4">
+                  {/* MUSIC */}
+                  <div
+                    type="button"
+                    variants={floatIn}
+                    initial="hidden"
+                    animate="visible"
+                    whileHover={{
+                      y: -6,
+                      boxShadow: "0 30px 60px rgba(37, 99, 235, 0.18)",
+                    }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => history.push("/music")}
+                    className="relative overflow-hidden rounded-4xl bg-white/70 border border-white/70 p-7 text-left backdrop-blur-xl shadow-[0_22px_60px_-35px_rgba(15,23,42,0.35)] group active:scale-95"
+                  >
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-blue-600/0 via-blue-600/10 to-blue-600/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="pointer-events-none absolute -top-24 -right-24 h-60 w-60 rounded-full bg-blue-300/30 blur-3xl opacity-70" />
 
-                  <div className="relative z-10 flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <div className="text-[10px] uppercase tracking-[0.15em] text-slate-500 font-black">
-                        Mindfulness
+                    <div className="relative z-10 flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="text-[10px] uppercase tracking-[0.15em] text-slate-500 font-black">
+                          Mindfulness
+                        </div>
+                        <div className="mt-3 text-[40px] leading-[1] font-black text-slate-900 tracking-tight">
+                          Music
+                        </div>
+                        <div className="mt-4 text-[13px] leading-relaxed text-slate-600 max-w-[18rem] font-semibold">
+                          Curated soundscapes for focus, calm and sleep
+                        </div>
                       </div>
-                      <div className="mt-3 text-[40px] leading-[1] font-black text-slate-900 tracking-tight">
-                        Music
-                      </div>
-                      <div className="mt-4 text-[13px] leading-relaxed text-slate-600 max-w-[18rem] font-semibold">
-                        Curated soundscapes for focus, calm and sleep
+                      <div
+                        className="w-12 h-12 shrink-0 rounded-2xl bg-blue-600/10 border border-blue-200 grid place-items-center"
+                        aria-hidden="true"
+                      >
+                        <Music2 className="w-7 h-7 text-blue-700" />
                       </div>
                     </div>
-                    <div
-                      className="w-12 h-12 shrink-0 rounded-2xl bg-blue-600/10 border border-blue-200 grid place-items-center"
-                      aria-hidden="true"
-                    >
-                      <Music2 className="w-7 h-7 text-blue-700" />
-                    </div>
-                  </div>
 
-                  <div className="mt-6 flex items-center justify-between relative z-10">
-                    <div className="h-1 w-16 bg-slate-900/10 rounded-full" />
-                    <ChevronRight className="w-6 h-6 text-slate-400 group-hover:translate-x-2 transition-transform" />
-                  </div>
-                </motion.button>
-
-                {/* QUIZ */}
-                <motion.button
-                  type="button"
-                  variants={floatIn}
-                  initial="hidden"
-                  animate="visible"
-                  whileHover={{ y: -5 }}
-                  whileTap={{ scale: 0.96 }}
-                  onClick={() => setShowQuiz(true)}
-                  className="relative overflow-hidden rounded-[28px] bg-white/70 border border-white/70 p-6 text-left backdrop-blur-xl shadow-[0_22px_60px_-35px_rgba(15,23,42,0.35)] group active:scale-95"
-                >
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-teal-500/0 via-teal-500/10 to-teal-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                  <div className="relative z-10 flex items-start justify-between gap-4">
-                    <div className="min-w-0 space-y-2">
-                      <div className="text-[10px] uppercase tracking-[0.12em] text-slate-500 font-black">
-                        Challenge
-                      </div>
-                      <div className="text-[24px] font-black text-slate-900 leading-none">
-                        Quiz
-                      </div>
-                      <div className="text-[12px] text-slate-600 font-semibold">
-                        Test and learn
-                      </div>
-                    </div>
-                    <div
-                      className="w-12 h-12 shrink-0 rounded-2xl bg-teal-600/10 border border-teal-200 grid place-items-center"
-                      aria-hidden="true"
-                    >
-                      <HelpCircle className="w-7 h-7 text-teal-700" />
+                    <div className="mt-6 flex items-center justify-between relative z-10">
+                      <div className="h-1 w-16 bg-slate-900/10 rounded-full" />
+                      <ChevronRight className="w-6 h-6 text-slate-400 group-hover:translate-x-2 transition-transform" />
                     </div>
                   </div>
 
-                  <div className="mt-5 flex items-center justify-between relative z-10">
-                    <div className="h-1 w-10 bg-slate-900/10 rounded-full" />
-                    <ChevronRight className="w-6 h-6 text-slate-400 group-hover:translate-x-2 transition-transform" />
-                  </div>
-                </motion.button>
-
-                {/* TRACK */}
-                <motion.button
-                  type="button"
-                  variants={floatIn}
-                  initial="hidden"
-                  animate="visible"
-                  whileHover={{
-                    y: -6,
-                    boxShadow: "0 30px 60px rgba(99, 102, 241, 0.18)",
-                  }}
-                  whileTap={{ scale: 0.96 }}
-                  onClick={() => setShowTracker(true)}
-                  className="relative overflow-hidden rounded-[28px] bg-white/70 border border-white/70 p-6 text-left backdrop-blur-xl shadow-[0_22px_60px_-35px_rgba(15,23,42,0.35)] group active:scale-95"
-                >
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-indigo-500/0 via-indigo-500/10 to-indigo-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-                  <div className="relative z-10 flex items-start justify-between gap-4">
-                    <div className="min-w-0 space-y-2">
-                      <div className="text-[10px] uppercase tracking-[0.12em] text-slate-500 font-black">
-                        Activity
+                  {/* QUIZ */}
+                  <div
+                    type="button"
+                    variants={floatIn}
+                    initial="hidden"
+                    animate="visible"
+                    whileHover={{ y: -5 }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => setShowQuiz(true)}
+                    className="relative overflow-hidden rounded-[28px] bg-white/70 border border-white/70 p-6 text-left backdrop-blur-xl shadow-[0_22px_60px_-35px_rgba(15,23,42,0.35)] group active:scale-95"
+                  >
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-teal-500/0 via-teal-500/10 to-teal-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="relative z-10 flex items-start justify-between gap-4">
+                      <div className="min-w-0 space-y-2">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-slate-500 font-black">
+                          Challenge
+                        </div>
+                        <div className="text-[24px] font-black text-slate-900 leading-none">
+                          Quiz
+                        </div>
+                        <div className="text-[12px] text-slate-600 font-semibold">
+                          Test and learn
+                        </div>
                       </div>
-                      <div className="text-[24px] font-black text-slate-900 leading-none">
-                        Track
-                      </div>
-                      <div className="text-[12px] text-slate-600 font-semibold">
-                        Log activity
+                      <div
+                        className="w-12 h-12 shrink-0 rounded-2xl bg-teal-600/10 border border-teal-200 grid place-items-center"
+                        aria-hidden="true"
+                      >
+                        <HelpCircle className="w-7 h-7 text-teal-700" />
                       </div>
                     </div>
-                    <div
-                      className="w-12 h-12 shrink-0 rounded-2xl bg-indigo-600/10 border border-indigo-200 grid place-items-center"
-                      aria-hidden="true"
-                    >
-                      <BarChart3 className="w-7 h-7 text-indigo-700" />
+
+                    <div className="mt-5 flex items-center justify-between relative z-10">
+                      <div className="h-1 w-10 bg-slate-900/10 rounded-full" />
+                      <ChevronRight className="w-6 h-6 text-slate-400 group-hover:translate-x-2 transition-transform" />
                     </div>
                   </div>
 
-                  <div className="mt-5 flex items-center justify-between relative z-10">
-                    <div className="h-1 w-10 bg-slate-900/10 rounded-full" />
-                    <ChevronRight className="w-6 h-6 text-slate-400 group-hover:translate-x-2 transition-transform" />
-                  </div>
-                </motion.button>
+                  {/* TRACK */}
+                  <div  
+                    type="button"
+                    variants={floatIn}
+                    initial="hidden"
+                    animate="visible"
+                    whileHover={{
+                      y: -6,
+                      boxShadow: "0 30px 60px rgba(99, 102, 241, 0.18)",
+                    }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => setShowTracker(true)}
+                    className="relative overflow-hidden rounded-[28px] bg-white/70 border border-white/70 p-6 text-left backdrop-blur-xl shadow-[0_22px_60px_-35px_rgba(15,23,42,0.35)] group active:scale-95"
+                  >
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-indigo-500/0 via-indigo-500/10 to-indigo-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-                {/* JOKES */}
-                <motion.button
-                  type="button"
-                  variants={floatIn}
-                  initial="hidden"
-                  animate="visible"
-                  whileHover={{
-                    y: -6,
-                    boxShadow: "0 30px 60px rgba(244, 63, 94, 0.16)",
-                  }}
-                  whileTap={{ scale: 0.96 }}
-                  onClick={() => setShowJoke(true)}
-                  className="relative overflow-hidden rounded-[28px] bg-white/70 border border-white/70 p-6 text-left backdrop-blur-xl shadow-[0_22px_60px_-35px_rgba(15,23,42,0.35)] group active:scale-95"
-                >
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-rose-500/0 via-rose-500/10 to-rose-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-                  <div className="relative z-10 flex items-start justify-between gap-4">
-                    <div className="min-w-0 space-y-2">
-                      <div className="text-[10px] uppercase tracking-[0.12em] text-slate-500 font-black">
-                        Quick Reset
+                    <div className="relative z-10 flex items-start justify-between gap-4">
+                      <div className="min-w-0 space-y-2">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-slate-500 font-black">
+                          Activity
+                        </div>
+                        <div className="text-[24px] font-black text-slate-900 leading-none">
+                          Track
+                        </div>
+                        <div className="text-[12px] text-slate-600 font-semibold">
+                          Log activity
+                        </div>
                       </div>
-                      <div className="text-[24px] font-black text-slate-900 leading-none">
-                        Jokes
-                      </div>
-                      <div className="text-[12px] text-slate-600 font-semibold">
-                        Lighten up
+                      <div
+                        className="w-12 h-12 shrink-0 rounded-2xl bg-indigo-600/10 border border-indigo-200 grid place-items-center"
+                        aria-hidden="true"
+                      >
+                        <BarChart3 className="w-7 h-7 text-indigo-700" />
                       </div>
                     </div>
-                    <div
-                      className="w-12 h-12 shrink-0 rounded-2xl bg-rose-600/10 border border-rose-200 grid place-items-center"
-                      aria-hidden="true"
-                    >
-                      <Laugh className="w-7 h-7 text-rose-700" />
+
+                    <div className="mt-5 flex items-center justify-between relative z-10">
+                      <div className="h-1 w-10 bg-slate-900/10 rounded-full" />
+                      <ChevronRight className="w-6 h-6 text-slate-400 group-hover:translate-x-2 transition-transform" />
                     </div>
                   </div>
 
-                  <div className="mt-5 flex items-center justify-between relative z-10">
-                    <div className="h-1 w-10 bg-slate-900/10 rounded-full" />
-                    <ChevronRight className="w-6 h-6 text-slate-400 group-hover:translate-x-2 transition-transform" />
+                  {/* JOKES */}
+                  <div
+                    type="button"
+                    variants={floatIn}
+                    initial="hidden"
+                    animate="visible"
+                    whileHover={{
+                      y: -6,
+                      boxShadow: "0 30px 60px rgba(244, 63, 94, 0.16)",
+                    }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => setShowJoke(true)}
+                    className="relative overflow-hidden rounded-[28px] bg-white/70 border border-white/70 p-6 text-left backdrop-blur-xl shadow-[0_22px_60px_-35px_rgba(15,23,42,0.35)] group active:scale-95"
+                  >
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-rose-500/0 via-rose-500/10 to-rose-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                    <div className="relative z-10 flex items-start justify-between gap-4">
+                      <div className="min-w-0 space-y-2">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-slate-500 font-black">
+                          Quick Reset
+                        </div>
+                        <div className="text-[24px] font-black text-slate-900 leading-none">
+                          Jokes
+                        </div>
+                        <div className="text-[12px] text-slate-600 font-semibold">
+                          Lighten up
+                        </div>
+                      </div>
+                      <div
+                        className="w-12 h-12 shrink-0 rounded-2xl bg-rose-600/10 border border-rose-200 grid place-items-center"
+                        aria-hidden="true"
+                      >
+                        <Laugh className="w-7 h-7 text-rose-700" />
+                      </div>
+                    </div>
+
+                    <div className="mt-5 flex items-center justify-between relative z-10">
+                      <div className="h-1 w-10 bg-slate-900/10 rounded-full" />
+                      <ChevronRight className="w-6 h-6 text-slate-400 group-hover:translate-x-2 transition-transform" />
+                    </div>
                   </div>
-                </motion.button>
-              </div>
+                </div>
             </motion.section>
 
             {/* WELLNESS */}
