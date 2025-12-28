@@ -152,6 +152,8 @@ const Calendar = () => {
     t.setHours(0, 0, 0, 0);
     return t;
   }, []);
+  console.log({cycleLength});
+  
 
   const todayKey = useMemo(() => toKey(today), [today]);
 

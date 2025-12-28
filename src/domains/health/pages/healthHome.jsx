@@ -1,30 +1,32 @@
 import React, { useMemo, useState, useEffect } from "react";
 import PageLayout from "@/shared/layout/PageLayout";
 import { getUserData } from "@/infrastructure/storage/onboarding";
-import { usePeriodPrediction } from "@/domains/health/hooks/usePeriodPrediction";
 import { storageService } from "@/infrastructure/storage/storageService";
 import periodStorage from "@/infrastructure/storage/periodStorage";
 import { motion } from "framer-motion";
 import ColorBg from "@/components/ColorBg";
 
-import {
-  Bell,
-  Heart,
-  Sparkles,
-  Droplets,
-  Moon,
-  Activity,
-} from "lucide-react";
+import { Bell, Heart, Sparkles, Droplets, Moon, Activity } from "lucide-react";
 import Water from "../components/Water";
+import PeriodCalendarHelper from "../components/PeriodCalendarHelper";
+import { usePeriodPrediction } from "@/domains/health/hooks/usePeriodPrediction";
 
 // REFACTORED: Removed FloatingWellnessIcons component (decorative, -70 lines)
 // REFACTORED: Removed testNotification function (unused, -50 lines)
 // REFACTORED: Removed fadeUp animation variant (replaced with CSS)
 
 // REFACTORED: Reusable StatsCard component to reduce repetition (-40 lines)
-const StatsCard = ({ icon: Icon, title, subtitle, children, gradient = "from-blue-600 to-sky-400" }) => (
+const StatsCard = ({
+  icon: Icon,
+  title,
+  subtitle,
+  children,
+  gradient = "from-blue-600 to-sky-400",
+}) => (
   <section className="rounded-3xl border border-slate-200 bg-white/80 backdrop-blur p-5 shadow-sm hover:shadow-md transition">
-    <div className={`w-10 h-10 rounded-2xl bg-gradient-to-br ${gradient} text-white flex items-center justify-center`}>
+    <div
+      className={`w-10 h-10 rounded-2xl bg-gradient-to-br ${gradient} text-white flex items-center justify-center`}
+    >
       <Icon className="w-5 h-5" />
     </div>
     <h4 className="mt-4 text-sm font-semibold text-slate-900">{title}</h4>
@@ -32,6 +34,14 @@ const StatsCard = ({ icon: Icon, title, subtitle, children, gradient = "from-blu
     {children}
   </section>
 );
+
+// Helper for date key
+const toKey = (d) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
 
 const HealthHome = () => {
   // Period tracking state
@@ -65,7 +75,11 @@ const HealthHome = () => {
 
   const periodState = useMemo(() => {
     if (!cachedPeriodData?.lastPeriodDate) {
-      return { periodActive: false, savedPeriodStartDate: "", periodDuration: 5 };
+      return {
+        periodActive: false,
+        savedPeriodStartDate: "",
+        periodDuration: 5,
+      };
     }
 
     const startDate = new Date(cachedPeriodData.lastPeriodDate);
@@ -100,7 +114,7 @@ const HealthHome = () => {
   const savePeriodDate = () => {
     if (periodStartDate) {
       console.log("Saving period start date:", periodStartDate);
-      
+
       const currentPeriodData = periodStorage.get();
       const updated = periodStorage.update({
         lastPeriodDate: periodStartDate,
@@ -113,7 +127,6 @@ const HealthHome = () => {
       setPeriodStartDate("");
       window.dispatchEvent(new Event("period-data-changed"));
       window.location.reload();
-
     }
   };
 
@@ -125,9 +138,7 @@ const HealthHome = () => {
 
   const userData = getUserData();
   const userName = userData?.name || "Sarah";
-  const { nextPeriod, currentPhase } = usePeriodPrediction();
-
-  // REFACTORED: Removed testNotification function (unused, -50 lines)
+  const { nextPeriod, currentPhase, cycleLength } = usePeriodPrediction();
 
   // Memoize week calculations
   const { weekDays, today } = useMemo(() => {
@@ -151,10 +162,42 @@ const HealthHome = () => {
   const WEEK_DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
   const progress = useMemo(() => {
+    console.log(cycleLength);
+
     // If your nextPeriod.percent exists use it. Otherwise keep your previous behavior.
-    const v = Math.min(nextPeriod?.daysUntil || 0, 100);
-    return Number.isFinite(v) ? v : 0;
+    console.log(nextPeriod?.daysUntil);
+    const days = cycleLength - nextPeriod?.daysUntil;
+    const prog = (days / cycleLength) * 100;
+    return Math.round(prog);
   }, [nextPeriod?.daysUntil]);
+
+  // Get calendar prediction data for markers
+  const { futurePeriods, hasPeriodData } = usePeriodPrediction({
+    monthsAhead: 2,
+  });
+
+  // Mini calendar markers for the current week
+  const weekMarkers = useMemo(() => {
+    if (!hasPeriodData || !futurePeriods?.length) return {};
+    // Use the same calendar helper as the full calendar
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const calendarData = PeriodCalendarHelper.getCalendarMonthData({
+      predictions: futurePeriods,
+      cycleLength,
+      year,
+      month,
+    });
+
+    const markers = {};
+    weekDays.forEach((date) => {
+      const key = toKey(date);
+      const type = calendarData.getDateType(date);
+      markers[key] = type; // "period", "fertile", "ovulation", or undefined
+    });
+    return markers;
+  }, [weekDays, futurePeriods, cycleLength, hasPeriodData]);
 
   return (
     <PageLayout>
@@ -201,7 +244,11 @@ const HealthHome = () => {
                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                   />
                   <span className="absolute inset-0 flex items-center justify-center text-xs font-semibold">
-                    <span className={`absolute ${periodActive ? "left-1" : "right-1"} text-white`}>
+                    <span
+                      className={`absolute ${
+                        periodActive ? "left-1" : "right-1"
+                      } text-white`}
+                    >
                       {periodActive ? "ON" : "OFF"}
                     </span>
                   </span>
@@ -243,7 +290,11 @@ const HealthHome = () => {
                 />
                 {periodStartDate && (
                   <p className="text-xs text-slate-500 mt-2">
-                    Day {Math.floor((new Date() - new Date(periodStartDate)) / (1000 * 60 * 60 * 24)) + 1}
+                    Day{" "}
+                    {Math.floor(
+                      (new Date() - new Date(periodStartDate)) /
+                        (1000 * 60 * 60 * 24)
+                    ) + 1}
                   </p>
                 )}
               </div>
@@ -270,6 +321,80 @@ const HealthHome = () => {
         {/* Content */}
         <div className="relative px-5 pb-10">
           <div className="mx-auto max-w-3xl space-y-6">
+            {/* Mini Calendar Week Overview */}
+            <section className="rounded-3xl border border-slate-200 bg-white/80 backdrop-blur p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-semibold text-slate-900">
+                  Week Overview
+                </h3>
+                <span className="text-xs text-slate-500">This week</span>
+              </div>
+              <div className="grid grid-cols-7 gap-2">
+                {weekDays.map((date, idx) => {
+                  const key = toKey(date);
+                  const isToday = date.toDateString() === today.toDateString();
+                  const type = weekMarkers[key];
+                  return (
+                    <div
+                      key={idx}
+                      className={[
+                        "flex flex-col items-center justify-center rounded-2xl py-2 font-semibold text-xs transition relative",
+                        isToday
+                          ? "bg-gradient-to-br from-blue-600 to-sky-400 text-white shadow-sm"
+                          : "bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100",
+                      ].join(" ")}
+                    >
+                      <span
+                        className={
+                          isToday ? "text-white/85 mb-1" : "text-slate-500 mb-1"
+                        }
+                      >
+                        {WEEK_DAYS[idx]}
+                      </span>
+                      <span
+                        className={isToday ? "text-white" : "text-slate-900"}
+                      >
+                        {date.getDate()}
+                      </span>
+                      {/* Marker dots */}
+                      <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-1">
+                        {type === "period" && (
+                          <span className="h-2 w-2 rounded-full bg-pink-400" />
+                        )}
+                        {type === "fertile" && (
+                          <span className="h-2 w-2 rounded-full bg-emerald-300" />
+                        )}
+                        {type === "ovulation" && (
+                          <span className="h-2 w-2 rounded-full bg-green-200" />
+                        )}
+                        {isToday && (
+                          <span className="h-2 w-2 rounded-full border border-emerald-400/40 bg-white/5" />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Legend */}
+              <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-500">
+                <span className="inline-flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full bg-pink-400" /> Period
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full bg-emerald-300" />{" "}
+                  Fertile
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full bg-green-200" />{" "}
+                  Ovulation
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full border border-emerald-400/40 bg-white/5" />{" "}
+                  Today
+                </span>
+              </div>
+            </section>
+
             {/* Top hero card - REFACTORED: Removed framer-motion variants */}
             {currentPhase?.name === "Menstrual" ? (
               <section className="rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-600 to-sky-500 text-white p-6 shadow-sm">
@@ -298,7 +423,7 @@ const HealthHome = () => {
                       Cycle progress
                     </p>
                     <p className="text-4xl font-semibold text-slate-900">
-                      {progress}%
+                      {progress}%{/*  */}
                     </p>
                     <p className="text-sm text-slate-500 mt-1">
                       Keep steady habits. Small wins daily.
@@ -379,9 +504,9 @@ const HealthHome = () => {
             {/* Minimal cards grid - REFACTORED: Using StatsCard component */}
             <div className="grid grid-cols-2 gap-4">
               {/* Quick Log - Using StatsCard */}
-              <StatsCard 
-                icon={Heart} 
-                title="Quick Log" 
+              <StatsCard
+                icon={Heart}
+                title="Quick Log"
                 subtitle="Track your symptoms"
               >
                 <div className="mt-4 space-y-2 text-xs">
@@ -403,48 +528,6 @@ const HealthHome = () => {
               {/* Water */}
               <Water />
             </div>
-
-            {/* Week Overview */}
-            <section className="rounded-3xl border border-slate-200 bg-white/80 backdrop-blur p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-semibold text-slate-900">
-                  Week Overview
-                </h3>
-                <span className="text-xs text-slate-500">This week</span>
-              </div>
-
-              <div className="grid grid-cols-7 gap-2">
-                {weekDays.map((date, idx) => {
-                  const isToday = date.toDateString() === today.toDateString();
-                  const dayNum = date.getDate();
-
-                  return (
-                    <div
-                      key={idx}
-                      className={[
-                        "flex flex-col items-center justify-center rounded-2xl py-2 font-semibold text-xs transition",
-                        isToday
-                          ? "bg-gradient-to-br from-blue-600 to-sky-400 text-white shadow-sm"
-                          : "bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100",
-                      ].join(" ")}
-                    >
-                      <span
-                        className={
-                          isToday ? "text-white/85 mb-1" : "text-slate-500 mb-1"
-                        }
-                      >
-                        {WEEK_DAYS[idx]}
-                      </span>
-                      <span
-                        className={isToday ? "text-white" : "text-slate-900"}
-                      >
-                        {dayNum}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
 
             {/* Period Timeline */}
             <section className="rounded-3xl border border-blue-100 bg-gradient-to-br from-white to-blue-50 p-6 shadow-sm">
@@ -482,17 +565,17 @@ const HealthHome = () => {
             {/* Tips Grid - REFACTORED: Using StatsCard, removed nutrition modal */}
             <div className="grid grid-cols-2 gap-4">
               {/* Activity - Using StatsCard */}
-              <StatsCard 
-                icon={Activity} 
-                title="Activity" 
+              <StatsCard
+                icon={Activity}
+                title="Activity"
                 subtitle="Light movement eases discomfort."
                 gradient="from-blue-700 to-indigo-600"
               />
 
               {/* Journal - Using StatsCard */}
-              <StatsCard 
-                icon={Sparkles} 
-                title="Journal" 
+              <StatsCard
+                icon={Sparkles}
+                title="Journal"
                 subtitle="How are you feeling?"
               />
             </div>

@@ -26,9 +26,14 @@ const AppRouter = () => {
     const checkAuth = () => {
       const isLoggedIn = storageService.userProfileService.exists();
       const isOnboarded = storageService.onboardingService.isComplete();
-      
-      console.log("Auth check - loggedIn:", isLoggedIn, "onboarded:", isOnboarded);
-      
+
+      console.log(
+        "Auth check - loggedIn:",
+        isLoggedIn,
+        "onboarded:",
+        isOnboarded
+      );
+
       setLoggedIn(isLoggedIn);
       setOnboarded(isOnboarded);
       setReady(true);
@@ -50,10 +55,13 @@ const AppRouter = () => {
 
     window.addEventListener("storage", handleStorageChange);
     window.addEventListener("onboarding-complete", handleOnboardingComplete);
-    
+
     return () => {
       window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("onboarding-complete", handleOnboardingComplete);
+      window.removeEventListener(
+        "onboarding-complete",
+        handleOnboardingComplete
+      );
     };
   }, []);
 
