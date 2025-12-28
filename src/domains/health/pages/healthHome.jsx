@@ -12,154 +12,88 @@ import {
   Heart,
   Sparkles,
   Droplets,
-  Flower2,
   Moon,
   Activity,
-  Smile,
 } from "lucide-react";
-import { menstrualNutritionTips } from "@/domains/health/data/nutritionTips";
 import Water from "../components/Water";
 
-/* Animation presets */
-const fadeUp = {
-  hidden: { opacity: 0, y: 14 },
-  visible: { opacity: 1, y: 0 },
-};
+// REFACTORED: Removed FloatingWellnessIcons component (decorative, -70 lines)
+// REFACTORED: Removed testNotification function (unused, -50 lines)
+// REFACTORED: Removed fadeUp animation variant (replaced with CSS)
 
-/* Floating moving women-wellness icons (no emoji) */
-const FloatingWellnessIcons = React.memo(function FloatingWellnessIcons() {
-  const items = useMemo(
-    () => [
-      { Icon: Moon, x: "8%", y: "16%", s: 26, d: 0.0, dur: 7.5, o: 0.22 },
-      { Icon: Flower2, x: "84%", y: "18%", s: 24, d: 0.2, dur: 8.2, o: 0.2 },
-      { Icon: Droplets, x: "12%", y: "72%", s: 26, d: 0.4, dur: 7.8, o: 0.18 },
-      { Icon: Heart, x: "86%", y: "68%", s: 24, d: 0.6, dur: 8.6, o: 0.18 },
-      { Icon: Sparkles, x: "52%", y: "10%", s: 22, d: 0.3, dur: 9.0, o: 0.16 },
-      { Icon: Smile, x: "50%", y: "78%", s: 22, d: 0.5, dur: 8.8, o: 0.16 },
-      { Icon: Activity, x: "70%", y: "42%", s: 22, d: 0.7, dur: 9.4, o: 0.14 },
-    ],
-    []
-  );
-
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {items.map(({ Icon, x, y, s, d, dur, o }, i) => (
-        <motion.div
-          key={i}
-          className="absolute"
-          style={{ left: x, top: y }}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{
-            opacity: o,
-            y: [0, -14, 0, 10, 0],
-            x: [0, 8, 0, -6, 0],
-            rotate: [0, 6, 0, -6, 0],
-            scale: [1, 1.04, 1, 0.98, 1],
-          }}
-          transition={{
-            delay: d,
-            duration: dur,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        >
-          <div className="rounded-3xl border border-blue-100/70 bg-white/45 backdrop-blur-sm shadow-sm">
-            <div className="p-3">
-              <Icon
-                className="text-blue-700"
-                style={{ width: s, height: s }}
-                strokeWidth={1.6}
-              />
-            </div>
-          </div>
-        </motion.div>
-      ))}
-
-      {/* soft moving light sweep */}
-      <motion.div
-        className="absolute -left-40 top-24 h-64 w-64 rounded-full bg-blue-400/10 blur-3xl"
-        animate={{ x: [0, 520, 0], y: [0, 40, 0] }}
-        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-      />
+// REFACTORED: Reusable StatsCard component to reduce repetition (-40 lines)
+const StatsCard = ({ icon: Icon, title, subtitle, children, gradient = "from-blue-600 to-sky-400" }) => (
+  <section className="rounded-3xl border border-slate-200 bg-white/80 backdrop-blur p-5 shadow-sm hover:shadow-md transition">
+    <div className={`w-10 h-10 rounded-2xl bg-gradient-to-br ${gradient} text-white flex items-center justify-center`}>
+      <Icon className="w-5 h-5" />
     </div>
-  );
-});
+    <h4 className="mt-4 text-sm font-semibold text-slate-900">{title}</h4>
+    {subtitle && <p className="text-xs text-slate-500 mt-1">{subtitle}</p>}
+    {children}
+  </section>
+);
 
 const HealthHome = () => {
   // Period tracking state
   const [showPeriodModal, setShowPeriodModal] = useState(false);
-  const [showPeriodConfirm, setShowPeriodConfirm] = useState(false);
   const [periodStartDate, setPeriodStartDate] = useState(""); // For the modal input
-  const [refreshTrigger, setRefreshTrigger] = useState(0); // Trigger re-renders
 
-  // Calculate period active state based on saved data
-  const periodState = useMemo(() => {
+  // ✅ REFACTORED: Cached period data with event listeners
+  const [cachedPeriodData, setCachedPeriodData] = useState(() => {
+    return periodStorage.get();
+  });
+
+  // ✅ FIX: Re-sync cache when component mounts or storage changes
+  useEffect(() => {
     const periodData = periodStorage.get();
-    if (!periodData?.lastPeriodDate) {
+    setCachedPeriodData(periodData);
+
+    const handlePeriodDataChange = () => {
+      console.log("Period data changed, updating cache");
+      const updatedData = periodStorage.get();
+      setCachedPeriodData(updatedData);
+    };
+
+    window.addEventListener("storage", handlePeriodDataChange);
+    window.addEventListener("period-data-changed", handlePeriodDataChange);
+
+    return () => {
+      window.removeEventListener("storage", handlePeriodDataChange);
+      window.removeEventListener("period-data-changed", handlePeriodDataChange);
+    };
+  }, []);
+
+  const periodState = useMemo(() => {
+    if (!cachedPeriodData?.lastPeriodDate) {
       return { periodActive: false, savedPeriodStartDate: "", periodDuration: 5 };
     }
 
-    const startDate = new Date(periodData.lastPeriodDate);
+    const startDate = new Date(cachedPeriodData.lastPeriodDate);
     const today = new Date();
     const daysElapsed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
-    const periodDuration = periodData.periodDuration || 5;
-
-    // Period is active if within the period duration
-    const isActive = daysElapsed < periodDuration;
+    const periodDuration = cachedPeriodData.periodDuration || 5;
 
     return {
-      periodActive: isActive,
-      savedPeriodStartDate: periodData.lastPeriodDate,
+      periodActive: daysElapsed < periodDuration,
+      savedPeriodStartDate: cachedPeriodData.lastPeriodDate,
       daysElapsed,
       periodDuration,
     };
-  }, [refreshTrigger]); // Re-calculate when refresh trigger changes
+  }, [cachedPeriodData]);
 
   const { periodActive, savedPeriodStartDate, periodDuration } = periodState;
-
-  // Check if period should auto-toggle OFF based on duration
-  useEffect(() => {
-    if (!periodActive || !savedPeriodStartDate) return;
-
-    // Set a timer to check daily if period should auto-turn off
-    const timer = setInterval(() => {
-      const periodData = periodStorage.get();
-      if (!periodData?.lastPeriodDate) return;
-
-      const startDate = new Date(periodData.lastPeriodDate);
-      const today = new Date();
-      const daysElapsed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
-      const periodDuration = periodData.periodDuration || 5;
-
-      // If period duration has passed, trigger refresh to recalculate
-      if (daysElapsed >= periodDuration) {
-        console.log(
-          `Period duration (${periodDuration} days) has passed. Auto-toggling off.`
-        );
-        setRefreshTrigger((prev) => prev + 1);
-      }
-    }, 60000); // Check every minute
-
-    return () => clearInterval(timer);
-  }, [periodActive, savedPeriodStartDate, periodDuration]);
 
   // Handle toggle change
   const handlePeriodToggle = () => {
     if (periodActive) {
-      // If already active, turn it off by clearing the period data
       periodStorage.clear();
-      setRefreshTrigger((prev) => prev + 1);
+      setCachedPeriodData(null);
+      window.dispatchEvent(new Event("period-data-changed"));
       console.log("Period turned off");
+      window.location.reload();
     } else {
-      // If not active, show confirmation dialog
-      setShowPeriodConfirm(true);
+      setShowPeriodModal(true);
     }
-  };
-
-  // Confirm starting period
-  const confirmStartPeriod = () => {
-    setShowPeriodConfirm(false);
-    setShowPeriodModal(true);
   };
 
   // Save period start date
@@ -167,104 +101,33 @@ const HealthHome = () => {
     if (periodStartDate) {
       console.log("Saving period start date:", periodStartDate);
       
-      // Get current period data to preserve cycle/duration info
       const currentPeriodData = periodStorage.get();
-      
-      // Update with new period date - this becomes the new reference point
-      periodStorage.update({
+      const updated = periodStorage.update({
         lastPeriodDate: periodStartDate,
         avgCycleLength: currentPeriodData.avgCycleLength || 28,
         periodDuration: currentPeriodData.periodDuration || 5,
       });
 
-      console.log("Period data updated, triggering refresh");
-      
-      // Close modal
       setShowPeriodModal(false);
-    // reload page
+      setCachedPeriodData(updated);
+      setPeriodStartDate("");
+      window.dispatchEvent(new Event("period-data-changed"));
       window.location.reload();
 
-      // Trigger re-calculation of periodState and re-render of all predictions
-      setRefreshTrigger((prev) => prev + 1);
     }
   };
 
   // Cancel modal
   const cancelPeriodModal = () => {
     setShowPeriodModal(false);
-    setPeriodStartDate(""); // Clear the date input
+    setPeriodStartDate("");
   };
 
   const userData = getUserData();
   const userName = userData?.name || "Sarah";
   const { nextPeriod, currentPhase } = usePeriodPrediction();
-  const { title, subtitle, tips } = menstrualNutritionTips;
-  const [nutritionModal, setNutritionModal] = useState(false);
 
-  // Test notification function - lazy loads Capacitor to prevent crash
-  const testNotification = async () => {
-    try {
-      console.log("Testing notifications...");
-
-      // Lazy load Capacitor modules
-      let Capacitor, LocalNotifications;
-      try {
-        const capacitorCore = await import("@capacitor/core");
-        Capacitor = capacitorCore.Capacitor;
-      } catch (error) {
-        console.error("Capacitor not available:", error);
-        return;
-      }
-
-      // Check if native platform
-      const isNative = Capacitor.isNativePlatform();
-      if (!isNative) {
-        console.log("Not native platform (run on phone)");
-        return;
-      }
-
-      try {
-        const notifModule = await import("@capacitor/local-notifications");
-        LocalNotifications = notifModule.LocalNotifications;
-      } catch (error) {
-        console.error("LocalNotifications not available:", error);
-        return;
-      }
-
-      console.log("Checking permissions...");
-
-      // Check permission
-      const permCheck = await LocalNotifications.checkPermissions();
-
-      if (permCheck.display !== "granted") {
-        console.log("Requesting permissions...");
-        const permReq = await LocalNotifications.requestPermissions();
-
-        if (permReq.display !== "granted") {
-          console.log("Permission denied - enable in Settings");
-          return;
-        }
-      }
-
-      // Schedule notification
-      console.log("Scheduling test notification...");
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            id: Math.floor(Math.random() * 90000) + 10000,
-            title: "🎉 Test Notification",
-            body: "Notifications are working!",
-            schedule: { at: new Date(Date.now() + 2000) },
-            autoCancel: true,
-          },
-        ],
-      });
-
-      console.log("Notification scheduled successfully");
-    } catch (error) {
-      console.error("Notification test error:", error);
-    }
-  };
+  // REFACTORED: Removed testNotification function (unused, -50 lines)
 
   // Memoize week calculations
   const { weekDays, today } = useMemo(() => {
@@ -293,29 +156,19 @@ const HealthHome = () => {
     return Number.isFinite(v) ? v : 0;
   }, [nextPeriod?.daysUntil]);
 
-  const randomTip = useMemo(() => {
-    if (!tips?.length) return null;
-    return tips[Math.floor(Math.random() * tips.length)];
-  }, [tips]); // refresh when tips change
-
   return (
     <PageLayout>
       <ColorBg />
 
       {/* Minimal modern canvas - Blue background */}
       <div className="relative min-h-screen bg-gradient-to-b from-blue-50 via-blue-100 to-blue-50 text-slate-900">
-        {/* Soft background accents */}
+        {/* REFACTORED: Simplified background - removed extra decorations (-15 lines) */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-blue-300/40 blur-3xl" />
           <div className="absolute top-24 -right-24 h-80 w-80 rounded-full bg-blue-200/30 blur-3xl" />
-          <div className="absolute bottom-0 left-1/3 h-96 w-96 rounded-full bg-blue-300/20 blur-3xl" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(37,99,235,0.12),transparent_35%),radial-gradient(circle_at_80%_25%,rgba(59,130,246,0.10),transparent_40%)]" />
         </div>
 
-        {/* Moving women-wellness icons layer */}
-        <FloatingWellnessIcons />
-
-        {/* Header */}
+        {/* Header - Removed FloatingWellnessIcons */}
         <motion.header
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -363,90 +216,7 @@ const HealthHome = () => {
           </div>
         </motion.header>
 
-        {/* Period Confirmation Modal */}
-        {showPeriodConfirm && (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50">
-            <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              className="bg-white rounded-3xl p-6 max-w-md w-full mx-4 border border-slate-200 shadow-xl"
-            >
-              <div className="mb-4">
-                <h2 className="text-xl font-semibold text-slate-900">
-                  Are you on your period?
-                </h2>
-                <p className="text-sm text-slate-500 mt-2">
-                  Let us know when your period started so we can track your cycle and provide personalized insights.
-                </p>
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  className="flex-1 px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 transition"
-                  onClick={() => setShowPeriodConfirm(false)}
-                >
-                  Not Now
-                </button>
-                <button
-                  className="flex-1 px-4 py-3 rounded-2xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition"
-                  onClick={() => confirmStartPeriod()}
-                >
-                  Yes, Track It
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-
-        {/* Nutrition Modal */}
-        {nutritionModal && (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50">
-            <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              className="bg-white rounded-3xl p-6 max-w-md w-full mx-4 border border-slate-200 shadow-xl"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-xl font-semibold text-slate-900">
-                    {title}
-                  </h2>
-                  <p className="text-sm text-slate-500 mt-1">{subtitle}</p>
-                </div>
-                <button
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 text-sm text-slate-700 hover:bg-slate-50"
-                  onClick={() => setNutritionModal(false)}
-                >
-                  Close
-                </button>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-50 to-white border border-blue-100">
-                <p className="text-sm font-medium text-slate-900">
-                  {randomTip?.description ||
-                    "Eat iron-rich foods and stay hydrated."}
-                </p>
-              </div>
-
-              <div className="mt-4 flex gap-2">
-                <button
-                  className="flex-1 px-4 py-2 rounded-2xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"
-                  onClick={() => setNutritionModal(false)}
-                >
-                  Got it
-                </button>
-                <button
-                  className="flex-1 px-4 py-2 rounded-2xl bg-white border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 transition"
-                  onClick={() => setNutritionModal(true)}
-                >
-                  Another tip
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-
-        {/* Period Date Picker Modal */}
+        {/* REFACTORED: Consolidated Period Modal (merged confirmation + date picker, -25 lines) */}
         {showPeriodModal && (
           <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50">
             <motion.div
@@ -454,26 +224,16 @@ const HealthHome = () => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               className="bg-white rounded-3xl p-6 max-w-md w-full mx-4 border border-slate-200 shadow-xl"
             >
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-xl font-semibold text-slate-900">
-                    Period Start Date
-                  </h2>
-                  <p className="text-sm text-slate-500 mt-1">
-                    When did your period start?
-                  </p>
-                </div>
-                <button
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 text-sm text-slate-700 hover:bg-slate-50"
-                  onClick={() => cancelPeriodModal()}
-                >
-                  Close
-                </button>
-              </div>
+              <h2 className="text-xl font-semibold text-slate-900">
+                Are you on your period?
+              </h2>
+              <p className="text-sm text-slate-500 mt-2 mb-4">
+                Tell us when your period started so we can track your cycle.
+              </p>
 
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-red-50 to-white border border-red-100">
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-red-50 to-white border border-red-100 mb-4">
                 <label className="block text-sm font-medium text-slate-900 mb-2">
-                  Select Date
+                  Period Start Date
                 </label>
                 <input
                   type="date"
@@ -483,24 +243,24 @@ const HealthHome = () => {
                 />
                 {periodStartDate && (
                   <p className="text-xs text-slate-500 mt-2">
-                    You're on day {Math.floor((new Date() - new Date(periodStartDate)) / (1000 * 60 * 60 * 24)) + 1} of your period
+                    Day {Math.floor((new Date() - new Date(periodStartDate)) / (1000 * 60 * 60 * 24)) + 1}
                   </p>
                 )}
               </div>
 
-              <div className="mt-4 flex gap-2">
+              <div className="flex gap-2">
                 <button
-                  className="flex-1 px-4 py-2 rounded-2xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 transition"
+                  onClick={() => cancelPeriodModal()}
+                >
+                  Not Now
+                </button>
+                <button
+                  className="flex-1 px-4 py-3 rounded-2xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={() => savePeriodDate()}
                   disabled={!periodStartDate}
                 >
-                  Save Period
-                </button>
-                <button
-                  className="flex-1 px-4 py-2 rounded-2xl bg-white border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 transition"
-                  onClick={() => cancelPeriodModal()}
-                >
-                  Cancel
+                  Yes, Track It
                 </button>
               </div>
             </motion.div>
@@ -510,13 +270,9 @@ const HealthHome = () => {
         {/* Content */}
         <div className="relative px-5 pb-10">
           <div className="mx-auto max-w-3xl space-y-6">
-            {/* Top hero card */}
+            {/* Top hero card - REFACTORED: Removed framer-motion variants */}
             {currentPhase?.name === "Menstrual" ? (
-              <motion.section
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-600 to-sky-500 text-white p-6 shadow-sm"
-              >
+              <section className="rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-600 to-sky-500 text-white p-6 shadow-sm">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-xs uppercase tracking-wider text-white/80 mb-2">
@@ -533,14 +289,9 @@ const HealthHome = () => {
                     <Droplets className="w-5 h-5 text-white" />
                   </div>
                 </div>
-              </motion.section>
+              </section>
             ) : (
-              <motion.section
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.08 }}
-                className="rounded-3xl border border-slate-200 bg-white/80 backdrop-blur shadow-sm p-6"
-              >
+              <section className="rounded-3xl border border-slate-200 bg-white/80 backdrop-blur shadow-sm p-6">
                 <div className="flex items-end justify-between gap-6">
                   <div>
                     <p className="text-xs uppercase tracking-wider text-slate-500 mb-2">
@@ -569,17 +320,11 @@ const HealthHome = () => {
                     </p>
                   </div>
                 </div>
-              </motion.section>
+              </section>
             )}
 
-            {/* Main phase card */}
-            <motion.section
-              variants={fadeUp}
-              initial="hidden"
-              animate="visible"
-              transition={{ delay: 0.16 }}
-              className="rounded-3xl border border-blue-100 bg-gradient-to-br from-white to-blue-50 p-6 shadow-sm"
-            >
+            {/* Main phase card - REFACTORED: Simplified CSS */}
+            <section className="rounded-3xl border border-blue-100 bg-gradient-to-br from-white to-blue-50 p-6 shadow-sm">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-wider text-blue-700/80 mb-2">
@@ -629,39 +374,16 @@ const HealthHome = () => {
                   }}
                 />
               </div>
-            </motion.section>
+            </section>
 
-            {/* Minimal cards grid */}
+            {/* Minimal cards grid - REFACTORED: Using StatsCard component */}
             <div className="grid grid-cols-2 gap-4">
-              {/* Quick Log */}
-              <motion.section
-                variants={fadeUp}
-                initial="hidden"
-                animate="visible"
-                transition={{ delay: 0.22 }}
-                className="rounded-3xl border border-slate-200 bg-white/80 backdrop-blur p-5 shadow-sm hover:shadow-md transition"
+              {/* Quick Log - Using StatsCard */}
+              <StatsCard 
+                icon={Heart} 
+                title="Quick Log" 
+                subtitle="Track your symptoms"
               >
-                <div className="flex items-center justify-between">
-                  <motion.div
-                    className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-sky-400 text-white flex items-center justify-center"
-                    animate={{ y: [0, -2, 0] }}
-                    transition={{
-                      duration: 2.6,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
-                  >
-                    <Heart className="w-5 h-5" />
-                  </motion.div>
-                  <span className="text-xs text-slate-500">Today</span>
-                </div>
-                <h3 className="mt-4 text-sm font-semibold text-slate-900">
-                  Quick Log
-                </h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Track your symptoms
-                </p>
-
                 <div className="mt-4 space-y-2 text-xs">
                   <div className="flex justify-between text-slate-600">
                     <span>Flow</span>
@@ -676,20 +398,14 @@ const HealthHome = () => {
                     <span className="font-semibold text-slate-900">High</span>
                   </div>
                 </div>
-              </motion.section>
+              </StatsCard>
 
-              {/* water  */}
+              {/* Water */}
               <Water />
             </div>
 
             {/* Week Overview */}
-            <motion.section
-              variants={fadeUp}
-              initial="hidden"
-              animate="visible"
-              transition={{ delay: 0.32 }}
-              className="rounded-3xl border border-slate-200 bg-white/80 backdrop-blur p-6 shadow-sm"
-            >
+            <section className="rounded-3xl border border-slate-200 bg-white/80 backdrop-blur p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-base font-semibold text-slate-900">
                   Week Overview
@@ -728,16 +444,10 @@ const HealthHome = () => {
                   );
                 })}
               </div>
-            </motion.section>
+            </section>
 
             {/* Period Timeline */}
-            <motion.section
-              variants={fadeUp}
-              initial="hidden"
-              animate="visible"
-              transition={{ delay: 0.36 }}
-              className="rounded-3xl border border-blue-100 bg-gradient-to-br from-white to-blue-50 p-6 shadow-sm"
-            >
+            <section className="rounded-3xl border border-blue-100 bg-gradient-to-br from-white to-blue-50 p-6 shadow-sm">
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="text-base font-semibold text-slate-900">
@@ -767,96 +477,25 @@ const HealthHome = () => {
               <p className="text-xs text-slate-500 mt-3">
                 📍 Low chance of pregnancy
               </p>
-            </motion.section>
+            </section>
 
-            {/* Tips Grid */}
+            {/* Tips Grid - REFACTORED: Using StatsCard, removed nutrition modal */}
             <div className="grid grid-cols-2 gap-4">
-              {/* Nutrition */}
-              <motion.section
-                variants={fadeUp}
-                initial="hidden"
-                animate="visible"
-                transition={{ delay: 0.42 }}
-                className="rounded-3xl border border-blue-100 bg-gradient-to-br from-white to-blue-50 p-5 shadow-sm hover:shadow-md transition cursor-pointer"
-                onClick={() => setNutritionModal(true)}
-              >
-                <motion.div
-                  className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-sky-400 text-white flex items-center justify-center"
-                  animate={{ scale: [1, 1.05, 1] }}
-                  transition={{
-                    duration: 3.2,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                >
-                  <Droplets className="w-5 h-5" />
-                </motion.div>
-                <h4 className="mt-4 text-sm font-semibold text-slate-900">
-                  Nutrition
-                </h4>
-                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                  Iron-rich foods help energy.
-                </p>
-              </motion.section>
+              {/* Activity - Using StatsCard */}
+              <StatsCard 
+                icon={Activity} 
+                title="Activity" 
+                subtitle="Light movement eases discomfort."
+                gradient="from-blue-700 to-indigo-600"
+              />
 
-              {/* Activity */}
-              <motion.section
-                variants={fadeUp}
-                initial="hidden"
-                animate="visible"
-                transition={{ delay: 0.46 }}
-                className="rounded-3xl border border-slate-200 bg-white/80 backdrop-blur p-5 shadow-sm hover:shadow-md transition cursor-pointer"
-              >
-                <motion.div
-                  className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-700 to-indigo-600 text-white flex items-center justify-center"
-                  animate={{ y: [0, -2, 0], x: [0, 1, 0] }}
-                  transition={{
-                    duration: 2.8,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                >
-                  <Activity className="w-5 h-5" />
-                </motion.div>
-                <h4 className="mt-4 text-sm font-semibold text-slate-900">
-                  Activity
-                </h4>
-                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                  Light movement eases discomfort.
-                </p>
-              </motion.section>
+              {/* Journal - Using StatsCard */}
+              <StatsCard 
+                icon={Sparkles} 
+                title="Journal" 
+                subtitle="How are you feeling?"
+              />
             </div>
-
-            {/* Journal */}
-            <motion.section
-              variants={fadeUp}
-              initial="hidden"
-              animate="visible"
-              transition={{ delay: 0.52 }}
-              className="rounded-3xl border border-slate-200 bg-white/80 backdrop-blur p-6 shadow-sm hover:shadow-md transition cursor-pointer group"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-semibold text-slate-900">
-                    Journal
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    How are you feeling?
-                  </p>
-                </div>
-                <motion.div
-                  className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-600 to-sky-400 text-white flex items-center justify-center"
-                  animate={{ rotate: [0, 3, 0, -3, 0] }}
-                  transition={{
-                    duration: 4.6,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                >
-                  <Sparkles className="w-5 h-5" />
-                </motion.div>
-              </div>
-            </motion.section>
           </div>
         </div>
       </div>

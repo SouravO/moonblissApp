@@ -47,6 +47,7 @@ const Onboarding = () => {
     } finally {
       setIsSubmitting(false);
     }
+   
   }, [email, password, openQuestionnaire]);
 
   const handleQuestionnairesComplete = useCallback(
