@@ -1,4 +1,4 @@
-const BackgroundVisuals = ({ type, colorClass }) => {
+const Card = ({ type, colorClass }) => {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
 
@@ -161,3 +161,5 @@ const BackgroundVisuals = ({ type, colorClass }) => {
     </div>
   );
 };
+
+export default Card;

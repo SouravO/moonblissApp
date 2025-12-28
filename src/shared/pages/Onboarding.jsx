@@ -21,7 +21,7 @@ const Onboarding = () => {
     closeQuestionnaire,
     handleQuestionnaireComplete,
   } = useQuestionnaireFlow();
-// login handler
+  // login handler
   const handleLogin = useCallback(async () => {
     if (!email.trim() || !password.trim()) {
       return alert("Please enter both email and password");
@@ -47,29 +47,28 @@ const Onboarding = () => {
     } finally {
       setIsSubmitting(false);
     }
-   
   }, [email, password, openQuestionnaire]);
 
   const handleQuestionnairesComplete = useCallback(
     async (answers) => {
       try {
         console.log("Questionnaire completed with answers:", answers);
-        
+
         // Save questionnaire answers using the hook
         handleQuestionnaireComplete(answers);
-        
+
         // Mark onboarding as complete in storage
         storageService.onboardingService.markComplete();
         console.log("Onboarding marked complete");
-        
+
         // Close the questionnaire modal first
         closeQuestionnaire();
         console.log("Questionnaire modal closed");
-        
+
         // Dispatch custom event to trigger AppRouter re-check
         window.dispatchEvent(new Event("onboarding-complete"));
         console.log("Onboarding complete event dispatched");
-        
+
         // Then navigate to health page after a brief delay to ensure state updates
         setTimeout(() => {
           console.log("Navigating to /health");
