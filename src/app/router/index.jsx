@@ -1,7 +1,7 @@
 import { IonReactRouter } from "@ionic/react-router";
 import { IonTabs, IonRouterOutlet } from "@ionic/react";
 import { Route, Redirect, Switch } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 import { storageService } from "@/infrastructure/storage/storageService";
 import { useBackButton } from "@/domains/health/hooks/useBackButton";
@@ -17,25 +17,38 @@ import Quiz from "../../shared/pages/Quiz";
 import Calendar from "../../domains/health/components/Calendar";
 import Card from "../../domains/health/pages/Cards";
 
+const HAS_VISITED_KEY = "moonbliss_hasVisited";
+
 const AppRouter = () => {
   const [ready, setReady] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const [onboarded, setOnboarded] = useState(false);
+  const [hasVisited, setHasVisited] = useState(
+    () => !!localStorage.getItem(HAS_VISITED_KEY)
+  );
+  const [showCard, setShowCard] = useState(false);
+
+  // Track if Card has been shown in this session
+  const cardShownRef = useRef(false);
 
   useEffect(() => {
     const checkAuth = () => {
       const isLoggedIn = storageService.userProfileService.exists();
       const isOnboarded = storageService.onboardingService.isComplete();
-
-      console.log(
-        "Auth check - loggedIn:",
-        isLoggedIn,
-        "onboarded:",
-        isOnboarded
-      );
-
       setLoggedIn(isLoggedIn);
       setOnboarded(isOnboarded);
+
+      // Check if any user data exists
+      const hasUserData = isLoggedIn || isOnboarded;
+      const hasVisitedFlag = !!localStorage.getItem(HAS_VISITED_KEY);
+
+      // If no user data and no hasVisited, show Card
+      if (!hasUserData && !hasVisitedFlag && !cardShownRef.current) {
+        setShowCard(true);
+      } else {
+        setShowCard(false);
+      }
+      setHasVisited(hasVisitedFlag);
       setReady(true);
     };
 
@@ -43,13 +56,11 @@ const AppRouter = () => {
 
     // Listen for storage changes (logout from another tab or component)
     const handleStorageChange = () => {
-      console.log("Storage changed - rechecking auth");
       checkAuth();
     };
 
     // Custom event for onboarding completion
     const handleOnboardingComplete = () => {
-      console.log("Onboarding complete event triggered");
       checkAuth();
     };
 
@@ -65,32 +76,49 @@ const AppRouter = () => {
     };
   }, []);
 
+  // Handler when Card is shown and user proceeds
+  const handleCardComplete = () => {
+    localStorage.setItem(HAS_VISITED_KEY, "1");
+    setHasVisited(true);
+    cardShownRef.current = true;
+    setShowCard(false);
+  };
+
   if (!ready) return null;
 
-  if (!loggedIn || !onboarded) {
+  // 1. First visit (empty localStorage): Show Card
+  if (showCard) {
     return (
       <IonReactRouter>
-        <OnboardingRouterContent />
+        <Switch>
+          <Route
+            exact
+            path="/card"
+            render={() => <Card onGetStarted={handleCardComplete} />}
+          />
+          <Redirect to="/card" />
+        </Switch>
       </IonReactRouter>
     );
   }
 
+  // 2. User not logged in/onboarded, but hasVisited: Show Onboarding/Login
+  if (!loggedIn && !onboarded && hasVisited) {
+    return (
+      <IonReactRouter>
+        <Switch>
+          <Route exact path="/login" component={Onboarding} />
+          <Redirect to="/login" />
+        </Switch>
+      </IonReactRouter>
+    );
+  }
+
+  // 3. User data present: Show main app (HealthHome as landing)
   return (
     <IonReactRouter>
       <MainRouterContent />
     </IonReactRouter>
-  );
-};
-
-// Component inside router context for onboarding
-const OnboardingRouterContent = () => {
-  useBackButton();
-  return (
-    <Switch>
-      <Route exact path="/card" component={Card} />
-      <Route exact path="/login" component={Onboarding} />
-      <Redirect to="/card" />
-    </Switch>
   );
 };
 
@@ -111,12 +139,11 @@ const MainRouterContent = () => {
         <Route exact path="/calendar" component={Calendar} />
         <Route exact path="/profile" component={Profile} />
 
+        {/* Main landing page is /health */}
         <Route exact path="/">
-          <Redirect to="/card" />
+          <Redirect to="/health" />
         </Route>
       </IonRouterOutlet>
-
-      {/* ✅ SAFE BOTTOM NAV */}
       <BottomNav />
     </IonTabs>
   );
