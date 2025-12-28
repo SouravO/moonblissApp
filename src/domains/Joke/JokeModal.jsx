@@ -1,14 +1,21 @@
-// JokeModal.jsx
+// App.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 /**
- * BlueGPT: single-file "AI assistant" modal/page component (Tailwind) using free sources.
- * Free sources (no keys): Wikipedia REST + Open-Meteo.
- * Stores chat in localStorage.
+ * Single-file ChatGPT-like UI + logic.
+ * Requires a backend proxy that streams SSE at POST http://localhost:8787/api/chat
+ * Request body: { model, messages: [{role, content}] }
+ * SSE events expected:
+ *   event: delta   data: {"delta":"..."}
+ *   event: done    data: {}
+ *   event: error   data: {"message":"..."}
  */
 
-const STORAGE_KEY = "bluegpt_chat_v1";
+const API_URL = "http://localhost:8787/api/chat";
+const DEFAULT_MODEL = "gpt-4.1-mini";
+const LS_KEY = "chatgpt_single_file_v1";
 
+const uid = () => `${Date.now()}_${Math.random().toString(16).slice(2)}`;
 const nowISO = () => new Date().toISOString();
 const cx = (...xs) => xs.filter(Boolean).join(" ");
 
@@ -21,21 +28,7 @@ const safeJson = (s, fallback) => {
   }
 };
 
-const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-function useAutosizeTextarea(value) {
-  const ref = useRef(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.height = "0px";
-    el.style.height = `${el.scrollHeight}px`;
-  }, [value]);
-  return ref;
-}
-
-function formatTime(ts) {
+function fmtTime(ts) {
   try {
     const d = new Date(ts);
     return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -44,530 +37,413 @@ function formatTime(ts) {
   }
 }
 
-/* ---------------------- Local mini KB ---------------------- */
-const LOCAL_KB = [
-  {
-    keys: ["period", "cramp", "menstrual", "mens", "menstruation", "pms"],
-    title: "Period basics",
-    answer:
-      "Periods are normal uterine bleeding as part of the menstrual cycle. Cramps are usually caused by prostaglandins.\n\nTry: heat pad, gentle movement, hydration, sleep, and OTC pain relief if safe for you.\n\nSeek urgent care if: severe sudden pain, fainting, heavy bleeding soaking 1+ pad/hour for 2+ hours, pregnancy possibility, fever, or symptoms that feel alarming.",
-  },
-  {
-    keys: ["hydration", "water", "drink"],
-    title: "Hydration",
-    answer:
-      "Sip regularly. If urine is very dark or you feel dizzy, increase fluids and consider electrolytes. If you have kidney/heart conditions, follow clinician guidance.",
-  },
-  {
-    keys: ["panic", "anxiety", "stress"],
-    title: "Stress reset",
-    answer:
-      "Try a 60-second reset: inhale 4 seconds, exhale 6 seconds, repeat 6 times. Reduce caffeine, hydrate, and step away from screens briefly.",
-  },
-];
-
-/* ---------------------- Routing ---------------------- */
-function detectIntent(q) {
-  const s = q.toLowerCase().trim();
-  const weatherRe =
-    /(weather|temperature|forecast|rain|wind|humidity)\s+(in|at|for)\s+(.+)/i;
-  const m = s.match(weatherRe);
-  if (m && m[3]) return { type: "weather", location: m[3].trim() };
-
-  const wikiCue =
-    s.startsWith("who is ") ||
-    s.startsWith("what is ") ||
-    s.startsWith("define ") ||
-    s.startsWith("meaning of ") ||
-    s.startsWith("tell me about ") ||
-    s.startsWith("explain ");
-  if (wikiCue) return { type: "wiki" };
-
-  return { type: "auto" };
+function useAutoGrowTextarea(value) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "0px";
+    el.style.height = `${Math.min(el.scrollHeight, 220)}px`;
+  }, [value]);
+  return ref;
 }
 
-/* ---------------------- Wikipedia (free) ---------------------- */
-async function wikiSearch(query, signal) {
-  const url =
-    "https://en.wikipedia.org/w/api.php?" +
-    new URLSearchParams({
-      action: "query",
-      list: "search",
-      srsearch: query,
-      format: "json",
-      origin: "*",
-      srlimit: "5",
-    }).toString();
-
-  const res = await fetch(url, { signal });
-  if (!res.ok) throw new Error("Wikipedia search failed");
-  const data = await res.json();
-  const hits = data?.query?.search ?? [];
-  return hits.map((h) => ({
-    title: h.title,
-    snippet: (h.snippet || "").replace(/<\/?[^>]+(>|$)/g, ""),
-  }));
-}
-
-async function wikiSummary(titleOrQuery, signal) {
-  const title = encodeURIComponent(titleOrQuery.replaceAll(" ", "_"));
-  const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${title}`;
-  const res = await fetch(url, {
-    signal,
-    headers: { Accept: "application/json" },
-  });
-  if (!res.ok) throw new Error("Wikipedia summary failed");
-  const data = await res.json();
-  return {
-    title: data?.title || titleOrQuery,
-    extract: data?.extract || "",
-    url: data?.content_urls?.desktop?.page || "",
-    thumbnail: data?.thumbnail?.source || "",
-  };
-}
-
-/* ---------------------- Open-Meteo (free) ---------------------- */
-async function geoLookup(name, signal) {
-  const url =
-    "https://geocoding-api.open-meteo.com/v1/search?" +
-    new URLSearchParams({
-      name,
-      count: "1",
-      language: "en",
-      format: "json",
-    }).toString();
-  const res = await fetch(url, { signal });
-  if (!res.ok) throw new Error("Geocoding failed");
-  const data = await res.json();
-  const r = data?.results?.[0];
-  if (!r) return null;
-  return {
-    name: [r.name, r.admin1, r.country].filter(Boolean).join(", "),
-    lat: r.latitude,
-    lon: r.longitude,
-  };
-}
-
-async function weatherNow(lat, lon, signal) {
-  const url =
-    "https://api.open-meteo.com/v1/forecast?" +
-    new URLSearchParams({
-      latitude: String(lat),
-      longitude: String(lon),
-      current:
-        "temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m",
-      hourly: "precipitation_probability",
-      forecast_days: "1",
-      timezone: "auto",
-    }).toString();
-
-  const res = await fetch(url, { signal });
-  if (!res.ok) throw new Error("Weather fetch failed");
-  const data = await res.json();
-  const c = data?.current || {};
-  const hourly = data?.hourly || {};
-  const p0 = Array.isArray(hourly.precipitation_probability)
-    ? hourly.precipitation_probability[0]
-    : null;
-
-  return {
-    temp: c.temperature_2m,
-    feels: c.apparent_temperature,
-    humid: c.relative_humidity_2m,
-    wind: c.wind_speed_10m,
-    precipChance: p0,
-    units: data?.current_units || {},
-  };
-}
-
-/* ---------------------- Assistant core ---------------------- */
-function localKbAnswer(q) {
-  const s = q.toLowerCase();
-  const hit = LOCAL_KB.find((item) => item.keys.some((k) => s.includes(k)));
-  if (!hit) return null;
-  return { kind: "local", title: hit.title, text: hit.answer };
-}
-
-async function answerQuestion(q, signal) {
-  const intent = detectIntent(q);
-
-  if (intent.type === "weather") {
-    const place = await geoLookup(intent.location, signal);
-    if (!place) {
-      return {
-        kind: "weather",
-        title: "Weather",
-        text: `I could not find "${intent.location}". Try "weather in Bengaluru".`,
-      };
-    }
-    const w = await weatherNow(place.lat, place.lon, signal);
-    const u = w.units || {};
-    const line1 = `**${place.name}**`;
-    const line2 = `Temperature: **${w.temp}${u.temperature_2m || "°C"}** (feels like **${w.feels}${u.apparent_temperature || "°C"}**)`;
-    const line3 = `Humidity: **${w.humid}${u.relative_humidity_2m || "%"}**, Wind: **${w.wind}${u.wind_speed_10m || " km/h"}**`;
-    const line4 =
-      w.precipChance == null
-        ? ""
-        : `Chance of precipitation (next hour): **${w.precipChance}%**`;
-    return {
-      kind: "weather",
-      title: "Weather report",
-      text: [line1, line2, line3, line4].filter(Boolean).join("\n"),
-    };
-  }
-
-  const kb = localKbAnswer(q);
-  if (kb) return kb;
-
-  if (intent.type === "wiki") {
-    const cleaned = q
-      .replace(/^who is\s+/i, "")
-      .replace(/^what is\s+/i, "")
-      .replace(/^define\s+/i, "")
-      .replace(/^meaning of\s+/i, "")
-      .replace(/^tell me about\s+/i, "")
-      .replace(/^explain\s+/i, "")
-      .trim();
-    try {
-      const s = await wikiSummary(cleaned, signal);
-      if (s.extract) {
-        return {
-          kind: "wiki",
-          title: s.title,
-          text: `${s.extract}\n\nSource: ${s.url || "Wikipedia"}`,
-          meta: { url: s.url, thumbnail: s.thumbnail },
-        };
-      }
-    } catch {
-      // fall through
-    }
-  }
-
-  const hits = await wikiSearch(q, signal);
-  if (!hits.length) {
-    return {
-      kind: "fallback",
-      title: "No direct source found",
-      text:
-        "I did not find a reliable public summary for that query.\n\nTry rephrasing with: `what is ...`, `who is ...`, or ask for weather like: `weather in Kochi`.",
-    };
-  }
-
-  const top = hits[0].title;
-  try {
-    const s = await wikiSummary(top, signal);
-    if (s.extract) {
-      const also = hits
-        .slice(1, 4)
-        .map((h) => `• ${h.title}`)
-        .join("\n");
-      return {
-        kind: "wiki",
-        title: s.title,
-        text: `${s.extract}\n\nRelated:\n${also}\n\nSource: ${s.url || "Wikipedia"}`,
-        meta: { url: s.url, thumbnail: s.thumbnail },
-      };
-    }
-  } catch {
-    // ignore
-  }
-
-  return {
-    kind: "search",
-    title: "Search results",
-    text: "I found these Wikipedia matches:\n\n" + hits.map((h) => `• ${h.title}: ${h.snippet}`).join("\n"),
-  };
-}
-
-/* ---------------------- UI bits ---------------------- */
-function Markdownish({ text }) {
-  const parts = String(text || "").split("\n");
-  return (
-    <div className="space-y-2 leading-relaxed">
-      {parts.map((line, idx) => (
-        <p key={idx} className="whitespace-pre-wrap break-words">
-          {renderBold(line)}
-        </p>
-      ))}
-    </div>
-  );
-}
-
-function renderBold(line) {
+/* ---------------- Markdown renderer: text + **bold** + ```code``` ---------------- */
+function splitIntoBlocks(s) {
   const out = [];
+  const re = /```([a-zA-Z0-9_-]+)?\n([\s\S]*?)```/g;
+  let last = 0;
+  let m;
+  while ((m = re.exec(s))) {
+    const before = s.slice(last, m.index);
+    if (before.trim() !== "") out.push({ type: "text", content: before });
+    out.push({ type: "code", lang: (m[1] || "").trim(), content: m[2] || "" });
+    last = m.index + m[0].length;
+  }
+  const tail = s.slice(last);
+  if (tail.trim() !== "") out.push({ type: "text", content: tail });
+  if (out.length === 0) out.push({ type: "text", content: s });
+  return out;
+}
+
+function renderInlineBold(line) {
+  const parts = [];
   let i = 0;
   while (i < line.length) {
     const a = line.indexOf("**", i);
     if (a === -1) {
-      out.push(line.slice(i));
+      parts.push({ t: "text", v: line.slice(i) });
       break;
     }
     const b = line.indexOf("**", a + 2);
     if (b === -1) {
-      out.push(line.slice(i));
+      parts.push({ t: "text", v: line.slice(i) });
       break;
     }
-    if (a > i) out.push(line.slice(i, a));
-    out.push(
-      <strong key={`${a}-${b}`} className="font-semibold text-white">
-        {line.slice(a + 2, b)}
-      </strong>
-    );
+    if (a > i) parts.push({ t: "text", v: line.slice(i, a) });
+    parts.push({ t: "bold", v: line.slice(a + 2, b) });
     i = b + 2;
   }
-  return out.map((chunk, idx) => <React.Fragment key={idx}>{chunk}</React.Fragment>);
-}
-
-function IconSend(props) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path
-        d="M3.5 12L20.5 3.5L14 20.5L11.2 13.3L3.5 12Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-function IconSpark(props) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path
-        d="M12 2l1.2 4.2L17.4 8 13.2 9.2 12 13.4 10.8 9.2 6.6 8l4.2-1.8L12 2z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M19 13l.8 2.8L22 17l-2.2.9L19 20l-.8-2.1L16 17l2.2-1.2L19 13z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-function IconTrash(props) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path
-        d="M5 7h14M10 7V5.8c0-.9.7-1.6 1.6-1.6h.8c.9 0 1.6.7 1.6 1.6V7"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-      <path
-        d="M8 7l1 14h6l1-14"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-function IconCopy(props) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path
-        d="M9 9h10v10H9V9Z"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-function IconClose(props) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path
-        d="M6 6l12 12M18 6L6 18"
-        stroke="currentColor"
-        strokeWidth="1.9"
-        strokeLinecap="round"
-      />
-    </svg>
+  return parts.map((p, idx) =>
+    p.t === "bold" ? (
+      <strong key={idx} className="font-semibold text-zinc-100">
+        {p.v}
+      </strong>
+    ) : (
+      <React.Fragment key={idx}>{p.v}</React.Fragment>
+    )
   );
 }
 
-/* ---------------------- Component ---------------------- */
-/**
- * Usage:
- * <JokeModal isOpen={isOpen} onClose={() => setOpen(false)} />
- *
- * If you want it as a full page, just render it with isOpen=true and ignore onClose.
- */
-export default function JokeModal({ isOpen = true, open, onClose }) {
-  // Support both 'isOpen' and 'open' props for flexibility
-  const actualOpen = isOpen !== undefined ? isOpen : open;
-  const [messages, setMessages] = useState(() =>
-    safeJson(localStorage.getItem(STORAGE_KEY), [
-      {
-        id: "m0",
-        role: "assistant",
-        ts: nowISO(),
-        title: "BlueGPT",
-        content:
-          "Ask anything.\n\nTry:\n• **what is quantum computing**\n• **who is Ada Lovelace**\n• **weather in Bengaluru**\n\nFree sources only. Not a full ChatGPT model.",
-      },
-    ])
+function CodeBlock({ code, lang }) {
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 900);
+    } catch {}
+  }
+  return (
+    <div className="rounded-xl border border-white/10 bg-black/40 overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-white/10 bg-white/[0.03]">
+        <div className="text-[11px] text-zinc-400">{lang || "code"}</div>
+        <button
+          onClick={copy}
+          className="text-[11px] text-zinc-300 hover:text-white rounded-lg px-2 py-1 border border-white/10 bg-white/[0.03]"
+        >
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+      <pre className="p-3 overflow-x-auto text-[12px] text-zinc-200">
+        <code>{code}</code>
+      </pre>
+    </div>
   );
+}
+
+function Markdown({ text }) {
+  const blocks = useMemo(() => splitIntoBlocks(String(text || "")), [text]);
+  return (
+    <div className="space-y-3 leading-relaxed text-[14px]">
+      {blocks.map((b, i) => {
+        if (b.type === "code") return <CodeBlock key={i} code={b.content} lang={b.lang} />;
+        return (
+          <p key={i} className="whitespace-pre-wrap break-words text-zinc-200">
+            {renderInlineBold(b.content)}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ---------------- SSE streaming client (POST) ---------------- */
+function streamChat({ url, body, signal, onDelta, onDone, onError }) {
+  fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal,
+  })
+    .then(async (res) => {
+      if (!res.ok || !res.body) {
+        const t = await res.text().catch(() => "");
+        throw new Error(t || "Bad response");
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() || "";
+
+        for (const part of parts) {
+          const lines = part.split("\n");
+          const evLine = lines.find((l) => l.startsWith("event:"));
+          const dataLine = lines.find((l) => l.startsWith("data:"));
+          const ev = (evLine || "event: message").slice(6).trim();
+          const raw = (dataLine || "data: {}").slice(5).trim();
+
+          let payload = {};
+          try {
+            payload = JSON.parse(raw);
+          } catch {}
+
+          if (ev === "delta") onDelta?.(payload.delta || "");
+          if (ev === "done") onDone?.();
+          if (ev === "error") onError?.(payload.message || "Stream error");
+        }
+      }
+
+      onDone?.();
+    })
+    .catch((e) => {
+      if (e?.name === "AbortError") return;
+      onError?.(e?.message || "Network error");
+    });
+}
+
+export default function App({ isOpen = true, onClose = () => {} }) {
+  const [state, setState] = useState(() =>
+    safeJson(localStorage.getItem(LS_KEY), { activeId: null, chats: [] })
+  );
+
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [input, setInput] = useState("");
-  const [isThinking, setIsThinking] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
   const [toast, setToast] = useState(null);
+  const [model, setModel] = useState(DEFAULT_MODEL);
 
   const abortRef = useRef(null);
   const listRef = useRef(null);
-  const taRef = useAutosizeTextarea(input);
+  const taRef = useAutoGrowTextarea(input);
 
-  const theme = useMemo(
-    () => ({
-      bg: "from-slate-950 via-blue-950 to-slate-950",
-      card: "bg-white/6 border-white/10",
-      card2: "bg-white/7 border-white/12",
-      glow:
-        "shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_18px_50px_rgba(0,102,255,0.25)]",
-      btn: "bg-sky-500/20 hover:bg-sky-500/28 border-sky-300/20",
-      ring: "focus:ring-2 focus:ring-sky-400/40 focus:outline-none",
-    }),
-    []
-  );
-
+  // Ensure at least one chat exists
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-  }, [messages]);
+    if (state.chats.length > 0 && state.activeId) return;
 
+    if (state.chats.length > 0 && !state.activeId) {
+      setState((s) => ({ ...s, activeId: s.chats[0].id }));
+      return;
+    }
+
+    const id = uid();
+    const seed = {
+      id,
+      title: "New chat",
+      createdAt: nowISO(),
+      messages: [
+        {
+          id: uid(),
+          role: "assistant",
+          ts: nowISO(),
+          content:
+            "Hi.\n\nThis is a ChatGPT-like UI.\n\n• Enter to send\n• Shift+Enter new line\n• Stop and Regenerate supported\n\nBackend required at /api/chat for real AI.",
+        },
+      ],
+    };
+    setState({ activeId: id, chats: [seed] });
+  }, [state.activeId, state.chats.length]);
+
+  // Persist
+  useEffect(() => {
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+  }, [state]);
+
+  // Scroll
   useEffect(() => {
     const el = listRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-  }, [messages, isThinking, open]);
+  }, [state.activeId, state.chats, isStreaming]);
 
+  // Toast timeout
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 1400);
+    const t = setTimeout(() => setToast(null), 1300);
     return () => clearTimeout(t);
   }, [toast]);
 
-  useEffect(() => {
-    if (!actualOpen) return;
-    const onEsc = (e) => {
-      if (e.key === "Escape") onClose?.();
-    };
-    window.addEventListener("keydown", onEsc);
-    return () => window.removeEventListener("keydown", onEsc);
-  }, [actualOpen, onClose]);
+  const activeChat = useMemo(() => {
+    return state.chats.find((c) => c.id === state.activeId) || state.chats[0];
+  }, [state]);
 
-  const canSend = input.trim().length > 0 && !isThinking;
-
-  const pushMessage = (m) =>
-    setMessages((prev) => [...prev, { ...m, id: `${Date.now()}_${Math.random()}` }]);
-
-  const updateLastAssistant = (patch) => {
-    setMessages((prev) => {
-      const copy = [...prev];
-      for (let i = copy.length - 1; i >= 0; i--) {
-        if (copy[i].role === "assistant") {
-          copy[i] = { ...copy[i], ...patch };
-          break;
-        }
-      }
-      return copy;
-    });
-  };
-
-  async function typeChunk(full) {
-    const minDelay = 8;
-    const maxDelay = 22;
-    let built = "";
-    for (let i = 0; i < full.length; i++) {
-      built += full[i];
-      if (i % 2 === 0 || i < 40) {
-        updateLastAssistant({ content: built, meta: { typing: true } });
-        await sleep(clamp(minDelay + Math.random() * 18, minDelay, maxDelay));
-      }
-    }
-    updateLastAssistant({ content: built, meta: { typing: false } });
+  function stop() {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setIsStreaming(false);
+    setToast("Stopped");
   }
 
-  async function handleSend() {
-    const q = input.trim();
-    if (!q || isThinking) return;
+  function setActive(id) {
+    if (isStreaming) stop();
+    setState((s) => ({ ...s, activeId: id }));
+  }
 
-    if (abortRef.current) abortRef.current.abort();
+  function newChat() {
+    if (isStreaming) stop();
+    const id = uid();
+    const chat = {
+      id,
+      title: "New chat",
+      createdAt: nowISO(),
+      messages: [{ id: uid(), role: "assistant", ts: nowISO(), content: "Hi. Ask me anything." }],
+    };
+    setState((s) => ({ activeId: id, chats: [chat, ...s.chats] }));
+  }
+
+  function deleteChat(id) {
+    if (isStreaming && state.activeId === id) stop();
+    setState((s) => {
+      const next = s.chats.filter((c) => c.id !== id);
+      const nextActive = s.activeId === id ? (next[0]?.id || null) : s.activeId;
+      return { activeId: nextActive, chats: next };
+    });
+  }
+
+  function renameFromFirstUser(chatId) {
+    setState((s) => {
+      const chats = s.chats.map((c) => {
+        if (c.id !== chatId) return c;
+        if (c.title && c.title !== "New chat") return c;
+        const firstUser = c.messages.find((m) => m.role === "user");
+        if (!firstUser) return c;
+        const t = String(firstUser.content || "").trim().slice(0, 34) || "Chat";
+        return { ...c, title: t };
+      });
+      return { ...s, chats };
+    });
+  }
+
+  function pushMsg(role, content) {
+    setState((s) => {
+      const chats = s.chats.map((c) => {
+        if (c.id !== s.activeId) return c;
+        return { ...c, messages: [...c.messages, { id: uid(), role, ts: nowISO(), content }] };
+      });
+      return { ...s, chats };
+    });
+  }
+
+  function updateLastAssistant(delta) {
+    setState((s) => {
+      const chats = s.chats.map((c) => {
+        if (c.id !== s.activeId) return c;
+        const ms = [...c.messages];
+        for (let i = ms.length - 1; i >= 0; i--) {
+          if (ms[i].role === "assistant") {
+            ms[i] = { ...ms[i], content: (ms[i].content || "") + delta };
+            break;
+          }
+        }
+        return { ...c, messages: ms };
+      });
+      return { ...s, chats };
+    });
+  }
+
+  function replaceLastAssistant(content) {
+    setState((s) => {
+      const chats = s.chats.map((c) => {
+        if (c.id !== s.activeId) return c;
+        const ms = [...c.messages];
+        for (let i = ms.length - 1; i >= 0; i--) {
+          if (ms[i].role === "assistant") {
+            ms[i] = { ...ms[i], content };
+            break;
+          }
+        }
+        return { ...c, messages: ms };
+      });
+      return { ...s, chats };
+    });
+  }
+
+  function canSend() {
+    return input.trim().length > 0 && !isStreaming;
+  }
+
+  function onKeyDown(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  }
+
+  function send() {
+    const q = input.trim();
+    if (!q || isStreaming) return;
+
+    abortRef.current?.abort();
     const ac = new AbortController();
     abortRef.current = ac;
 
-    pushMessage({ role: "user", ts: nowISO(), content: q });
     setInput("");
-    setIsThinking(true);
+    setIsStreaming(true);
 
-    pushMessage({
-      role: "assistant",
-      ts: nowISO(),
-      title: "BlueGPT",
-      content: "",
-      meta: { typing: true },
+    pushMsg("user", q);
+    pushMsg("assistant", ""); // placeholder for streaming output
+
+    const base = (activeChat?.messages || [])
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .map((m) => ({ role: m.role, content: m.content }));
+
+    // Add the just-sent user msg (state updates async)
+    base.push({ role: "user", content: q });
+
+    streamChat({
+      url: API_URL,
+      body: { model, messages: base },
+      signal: ac.signal,
+      onDelta: (d) => updateLastAssistant(d),
+      onDone: () => {
+        setIsStreaming(false);
+        renameFromFirstUser(state.activeId);
+      },
+      onError: (msg) => {
+        setIsStreaming(false);
+        replaceLastAssistant(`**Error**\n${msg || "Request failed"}`);
+      },
+    });
+  }
+
+  function regenerate() {
+    if (isStreaming) return;
+
+    const msgs = activeChat?.messages || [];
+    let lastUserIdx = -1;
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      if (msgs[i].role === "user") {
+        lastUserIdx = i;
+        break;
+      }
+    }
+    if (lastUserIdx < 0) return;
+
+    const trimmed = msgs.slice(0, lastUserIdx + 1);
+
+    setState((s) => {
+      const chats = s.chats.map((c) => (c.id === s.activeId ? { ...c, messages: trimmed } : c));
+      return { ...s, chats };
     });
 
-    try {
-      const res = await answerQuestion(q, ac.signal);
-      const header = res.title ? `**${res.title}**\n` : "";
-      const body = res.text || "No answer found.";
-      const final = `${header}\n${body}`.trim();
-      await typeChunk(final);
-      updateLastAssistant({
-        meta: {
-          typing: false,
-          kind: res.kind,
-          url: res?.meta?.url || "",
-          thumbnail: res?.meta?.thumbnail || "",
-        },
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
+
+    setIsStreaming(true);
+
+    setState((s) => {
+      const chats = s.chats.map((c) => {
+        if (c.id !== s.activeId) return c;
+        return { ...c, messages: [...trimmed, { id: uid(), role: "assistant", ts: nowISO(), content: "" }] };
       });
-    } catch (e) {
-      const msg =
-        e?.name === "AbortError"
-          ? "Request cancelled."
-          : "Something failed while fetching free sources. Try again.";
-      await typeChunk(`**Error**\n${msg}`);
-      updateLastAssistant({ meta: { typing: false, kind: "error" } });
-    } finally {
-      setIsThinking(false);
-    }
-  }
+      return { ...s, chats };
+    });
 
-  function handleStop() {
-    if (abortRef.current) abortRef.current.abort();
-    setIsThinking(false);
-  }
+    const history = trimmed.map((m) => ({ role: m.role, content: m.content }));
 
-  function handleClear() {
-    // close the modal 
-    onClose?.();
-    
-    if (abortRef.current) abortRef.current.abort();
-    const seed = [
-      {
-        id: "m0",
-        role: "assistant",
-        ts: nowISO(),
-        title: "BlueGPT",
-        content:
-          "Chat cleared.\n\nTry:\n• **what is blockchain**\n• **who is Marie Curie**\n• **weather in Mumbai**",
+    streamChat({
+      url: API_URL,
+      body: { model, messages: history },
+      signal: ac.signal,
+      onDelta: (d) => updateLastAssistant(d),
+      onDone: () => setIsStreaming(false),
+      onError: (msg) => {
+        setIsStreaming(false);
+        replaceLastAssistant(`**Error**\n${msg || "Request failed"}`);
       },
-    ];
-    setMessages(seed);
-    setToast("Cleared");
+    });
   }
 
-  async function copyText(text) {
+  async function copy(text) {
     try {
       await navigator.clipboard.writeText(text);
       setToast("Copied");
@@ -576,310 +452,235 @@ export default function JokeModal({ isOpen = true, open, onClose }) {
     }
   }
 
-  function onKeyDown(e) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  }
-
-  if (!actualOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50">
-      {/* Backdrop */}
-      <button
-        className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
-        onClick={() => onClose?.()}
-        aria-label="Close modal backdrop"
-      />
-
-      {/* Modal */}
-      <div className="absolute inset-0 flex items-center justify-center p-3 sm:p-6">
-        <div
-          className={cx(
-            "relative w-full max-w-5xl overflow-hidden rounded-3xl border text-white",
-            "bg-gradient-to-b",
-            theme.bg,
-            "border-white/10",
-            theme.glow
-          )}
+    <>
+      {!isOpen ? null : (
+        <div className="fixed inset-0 bg-[#0b0f14] text-white">
+      {/* Mobile top bar */}
+      <div className="flex items-center justify-between px-3 py-2 border-b border-white/10 lg:hidden">
+        <button
+          onClick={onClose}
+          className="px-3 py-2 rounded-lg border border-white/10 bg-white/[0.03] text-sm"
         >
-          {/* Background blobs */}
-          <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute -top-20 -left-24 h-72 w-72 rounded-full bg-sky-500/20 blur-3xl animate-[pulse_6s_ease-in-out_infinite]" />
-            <div className="absolute top-40 -right-24 h-80 w-80 rounded-full bg-blue-600/16 blur-3xl animate-[pulse_7.5s_ease-in-out_infinite]" />
-            <div className="absolute bottom-0 left-1/3 h-96 w-96 rounded-full bg-indigo-500/12 blur-3xl animate-[pulse_9s_ease-in-out_infinite]" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(56,189,248,0.10),transparent_35%),radial-gradient(circle_at_80%_25%,rgba(59,130,246,0.12),transparent_40%)]" />
-          </div>
+          ← Back
+        </button>
+        <div className="text-sm text-zinc-200 truncate max-w-[55%]">
+          {activeChat?.title || "Chat"}
+        </div>
+        <button
+          onClick={newChat}
+          className="px-3 py-2 rounded-lg border border-white/10 bg-white/[0.03] text-sm"
+        >
+          New
+        </button>
+      </div>
 
-          {/* Header */}
-          <div className={cx("relative flex items-center justify-between gap-3 border-b px-4 py-3 sm:px-6", theme.card, "border-white/10")}>
-            <div className="flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-sky-500/18 border border-sky-200/12">
-                <IconSpark className="h-5 w-5 text-sky-300" />
-              </div>
-              <div className="leading-tight">
-                <div className="text-sm font-semibold tracking-wide">
-                  BlueGPT Assistant
-                </div>
-                <div className="text-xs text-white/60">
-                  Wikipedia + Open-Meteo + Local KB. No keys.
-                </div>
-              </div>
-            </div>
+      <div className="h-full grid grid-cols-1 lg:grid-cols-[320px_1fr]">
+        {/* Sidebar */}
+        <div className={cx("border-r border-white/10 bg-[#0b0f14] lg:block", sidebarOpen ? "block" : "hidden")}>
+          <div className="p-3 space-y-2">
+            <button
+              onClick={newChat}
+              className="w-full rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.06] px-3 py-2 text-sm text-zinc-100"
+            >
+              + New chat
+            </button>
 
             <div className="flex items-center gap-2">
-              {isThinking ? (
-                <button
-                  onClick={handleStop}
-                  className={cx(
-                    "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm",
-                    "bg-rose-500/12 hover:bg-rose-500/18 border-rose-200/18",
-                    theme.ring
-                  )}
-                >
-                  <span className="h-2 w-2 rounded-full bg-rose-300 animate-[pulse_1.2s_ease-in-out_infinite]" />
-                  Stop
-                </button>
-              ) : (
-                <button
-                  onClick={handleClear}
-                  className={cx(
-                    "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm",
-                    theme.btn,
-                    theme.ring
-                  )}
-                >
-                  <IconTrash className="h-4 w-4 text-sky-200" />
-                  Clear
-                </button>
-              )}
-
-              <button
-                onClick={() => onClose?.()}
-                className={cx(
-                  "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm",
-                  "bg-white/6 hover:bg-white/10 border-white/10",
-                  theme.ring
-                )}
-                aria-label="Close modal"
+              <div className="text-[11px] text-zinc-500">Model</div>
+              <select
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                className="flex-1 rounded-lg border border-white/10 bg-white/[0.03] px-2 py-2 text-[12px] text-zinc-200 outline-none"
               >
-                <IconClose className="h-4 w-4 text-white/80" />
-              </button>
+                <option value="gpt-4.1-mini">gpt-4.1-mini</option>
+                <option value="gpt-4.1">gpt-4.1</option>
+                <option value="gpt-4o-mini">gpt-4o-mini</option>
+              </select>
             </div>
           </div>
 
-          {/* Body */}
-          <div className="relative grid grid-rows-[1fr_auto]">
-            {/* Messages */}
-            <div
-              ref={listRef}
-              className={cx(
-                "h-[70vh] overflow-y-auto p-4 sm:p-6",
-                "scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
-              )}
-            >
-              <div className="space-y-4">
-                {messages.map((m) => {
-                  const isUser = m.role === "user";
-                  const meta = m.meta || {};
-                  return (
-                    <div key={m.id} className={cx("flex", isUser ? "justify-end" : "justify-start")}>
+          <div className="px-2 pb-3 overflow-y-auto h-[calc(100%-108px)]">
+            <div className="space-y-1">
+              {state.chats.map((c) => {
+                const active = c.id === state.activeId;
+                return (
+                  <div
+                    key={c.id}
+                    className={cx(
+                      "group flex items-center gap-2 rounded-xl px-3 py-2 border",
+                      active
+                        ? "bg-white/[0.06] border-white/15"
+                        : "bg-transparent border-transparent hover:bg-white/[0.04] hover:border-white/10"
+                    )}
+                  >
+                    <button onClick={() => setActive(c.id)} className="flex-1 text-left min-w-0" title={c.title}>
+                      <div className="text-sm text-zinc-100 truncate">{c.title || "Chat"}</div>
+                      <div className="text-[11px] text-zinc-500">
+                        {new Date(c.createdAt).toLocaleDateString()}
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => deleteChat(c.id)}
+                      className="opacity-0 group-hover:opacity-100 text-[11px] px-2 py-1 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] text-zinc-300"
+                      title="Delete"
+                    >
+                      Del
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Main */}
+        <div className="relative flex flex-col">
+          {/* Desktop header */}
+          <div className="hidden lg:flex items-center justify-between px-5 py-3 border-b border-white/10">
+            <div className="text-sm text-zinc-200 truncate">{activeChat?.title || "Chat"}</div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={regenerate}
+                disabled={isStreaming}
+                className={cx(
+                  "rounded-xl border px-3 py-2 text-sm",
+                  isStreaming
+                    ? "border-white/10 bg-white/[0.02] text-zinc-500 cursor-not-allowed"
+                    : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06] text-zinc-200"
+                )}
+              >
+                Regenerate
+              </button>
+
+              {isStreaming ? (
+                <button
+                  onClick={stop}
+                  className="rounded-xl border border-rose-200/15 bg-rose-500/10 hover:bg-rose-500/15 px-3 py-2 text-sm text-rose-200"
+                >
+                  Stop
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div ref={listRef} className="flex-1 overflow-y-auto px-3 lg:px-0 pb-20 lg:pb-0">
+            <div className="max-w-3xl mx-auto py-6 space-y-6">
+              {(activeChat?.messages || []).map((m) => {
+                const isUser = m.role === "user";
+                return (
+                  <div key={m.id} className="w-full">
+                    <div className={cx("flex gap-3", isUser ? "justify-end" : "justify-start")}>
+                      {!isUser ? (
+                        <div className="h-8 w-8 rounded-full bg-emerald-500/15 border border-emerald-200/15 grid place-items-center text-[12px] text-emerald-200">
+                          AI
+                        </div>
+                      ) : null}
+
                       <div
                         className={cx(
-                          "max-w-[92%] sm:max-w-[78%] rounded-2xl border px-4 py-3",
-                          isUser
-                            ? "bg-sky-500/12 border-sky-200/16"
-                            : "bg-white/6 border-white/10",
+                          "max-w-[92%] lg:max-w-[80%] rounded-2xl border px-4 py-3",
+                          isUser ? "bg-white/[0.04] border-white/10" : "bg-black/20 border-white/10",
                           "backdrop-blur"
                         )}
                       >
-                        <div className="mb-1 flex items-center justify-between gap-4">
-                          <div className="flex items-center gap-2">
-                            {!isUser ? (
-                              <>
-                                <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-sky-500/18 border border-sky-200/10">
-                                  <IconSpark className="h-4 w-4 text-sky-300" />
-                                </span>
-                                <span className="text-xs font-medium text-white/70">
-                                  {m.title || "Assistant"}
-                                </span>
-                                {meta.kind ? (
-                                  <span className="rounded-full bg-white/6 px-2 py-0.5 text-[10px] text-white/60 border border-white/10">
-                                    {meta.kind}
-                                  </span>
-                                ) : null}
-                              </>
-                            ) : (
-                              <span className="text-xs font-medium text-white/60">
-                                You
-                              </span>
-                            )}
+                        <div className="flex items-center justify-between gap-3 mb-1">
+                          <div className="text-[11px] text-zinc-500">
+                            {isUser ? "You" : "Assistant"} · {fmtTime(m.ts)}
                           </div>
-
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-white/45">
-                              {formatTime(m.ts)}
-                            </span>
-                            {!isUser && (m.content || "").trim().length > 0 ? (
-                              <button
-                                onClick={() => copyText(m.content)}
-                                className={cx(
-                                  "rounded-lg border px-2 py-1 text-[11px] text-white/70 hover:text-white",
-                                  "bg-white/5 border-white/10 hover:bg-white/8",
-                                  theme.ring
-                                )}
-                                title="Copy"
-                              >
-                                <span className="inline-flex items-center gap-1">
-                                  <IconCopy className="h-3.5 w-3.5" />
-                                  Copy
-                                </span>
-                              </button>
-                            ) : null}
-                          </div>
+                          {(m.content || "").trim() ? (
+                            <button
+                              onClick={() => copy(m.content)}
+                              className="text-[11px] px-2 py-1 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] text-zinc-300"
+                            >
+                              Copy
+                            </button>
+                          ) : null}
                         </div>
 
-                        {!isUser && meta.thumbnail ? (
-                          <div className="mb-3 overflow-hidden rounded-xl border border-white/10 bg-white/5">
-                            <img
-                              src={meta.thumbnail}
-                              alt=""
-                              className="h-40 w-full object-cover"
-                              loading="lazy"
-                            />
-                          </div>
-                        ) : null}
+                        <Markdown text={m.content} />
 
-                        {meta.typing ? (
-                          <div className="relative">
-                            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_1.4s_linear_infinite]" />
-                            <div className="relative text-sm text-white/90">
-                              <Markdownish text={m.content || " "} />
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="text-sm text-white/90">
-                            <Markdownish text={m.content} />
-                          </div>
-                        )}
-
-                        {!isUser && meta.url ? (
-                          <div className="mt-3">
-                            <a
-                              href={meta.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className={cx(
-                                "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs",
-                                "bg-sky-500/12 hover:bg-sky-500/18 border-sky-200/14 text-sky-200",
-                                theme.ring
-                              )}
-                            >
-                              Source
-                            </a>
-                          </div>
+                        {!isUser && isStreaming && (m.content || "").length === 0 ? (
+                          <div className="mt-2 text-[12px] text-zinc-500">Thinking…</div>
                         ) : null}
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
 
-            {/* Composer */}
-            <div className="border-t border-white/10 p-3 sm:p-4">
-              <div className="flex items-end gap-2 sm:gap-3">
-                <div className="flex-1">
-                  <div className="relative">
-                    <textarea
-                      ref={taRef}
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      onKeyDown={onKeyDown}
-                      placeholder="Ask anything. Try: what is … | who is … | weather in …"
-                      rows={1}
-                      className={cx(
-                        "w-full resize-none rounded-2xl border bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/35",
-                        "border-white/10 focus:border-sky-300/30",
-                        theme.ring
-                      )}
-                    />
-                    <div className="pointer-events-none absolute right-3 top-3 text-[10px] text-white/35">
-                      Enter to send. Shift+Enter new line.
+                      {isUser ? (
+                        <div className="h-8 w-8 rounded-full bg-white/[0.05] border border-white/10 grid place-items-center text-[12px] text-zinc-200">
+                          U
+                        </div>
+                      ) : null}
                     </div>
                   </div>
+                );
+              })}
+            </div>
+          </div>
 
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {[
-                      "what is artificial intelligence",
-                      "who is Alan Turing",
-                      "weather in Bengaluru",
-                      "define blockchain",
-                    ].map((chip) => (
+          {/* Composer */}
+          <div className="fixed bottom-20 lg:relative left-0 right-0 border-t border-white/10 bg-[#0b0f14] lg:bottom-auto z-40">
+            <div className="max-w-3xl mx-auto p-3 w-full">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2">
+              <textarea
+                  ref={taRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={onKeyDown}
+                  rows={1}
+                  placeholder="Message…"
+                  className="w-full resize-none bg-transparent outline-none text-sm sm:text-base text-zinc-100 placeholder:text-zinc-500"
+                />
+                <div className="flex items-center justify-between pt-2 gap-2">
+                  <div className="text-[11px] text-zinc-500 hidden sm:inline">
+                    Enter to send · Shift+Enter new line
+                  </div>
+
+                  <div className="flex items-center gap-2 ml-auto">
+                    {isStreaming ? (
                       <button
-                        key={chip}
-                        onClick={() => setInput(chip)}
+                        onClick={stop}
+                        className="rounded-xl border border-rose-200/15 bg-rose-500/10 hover:bg-rose-500/15 px-2 sm:px-3 py-2 text-xs sm:text-sm text-rose-200 whitespace-nowrap"
+                      >
+                        Stop
+                      </button>
+                    ) : null}
+                      <button
+                        onClick={send}
+                        disabled={!canSend()}
                         className={cx(
-                          "rounded-full border px-3 py-1 text-[11px] text-white/70 hover:text-white",
-                          "bg-white/5 border-white/10 hover:bg-white/8",
-                          theme.ring
+                          "rounded-xl border px-2 sm:px-3 py-2 text-xs sm:text-sm whitespace-nowrap",
+                          canSend()
+                            ? "border-white/10 bg-white/[0.05] hover:bg-white/[0.08] text-zinc-100"
+                            : "border-white/10 bg-white/[0.02] text-zinc-500 cursor-not-allowed"
                         )}
                       >
-                        {chip}
+                        Send
                       </button>
-                    ))}
+                    )}
                   </div>
                 </div>
-
-                <button
-                  onClick={handleSend}
-                  disabled={!canSend}
-                  className={cx(
-                    "group inline-flex h-12 w-12 items-center justify-center rounded-2xl border transition",
-                    canSend
-                      ? "bg-sky-500/20 hover:bg-sky-500/28 border-sky-200/18"
-                      : "bg-white/4 border-white/8 opacity-60 cursor-not-allowed",
-                    theme.ring
-                  )}
-                  title="Send"
-                >
-                  <IconSend className="h-5 w-5 text-sky-200 group-hover:text-sky-100" />
-                </button>
               </div>
 
-              <div className="mt-3 text-[11px] text-white/45">
-                Free-source assistant. Verify critical info.
+              <div className="mt-2 text-[11px] text-zinc-600 hidden sm:block">
+                API endpoint: {API_URL}
               </div>
             </div>
           </div>
 
           {/* Toast */}
           {toast ? (
-            <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2">
-              <div className="rounded-full border border-white/12 bg-slate-950/70 px-4 py-2 text-xs text-white/80 backdrop-blur">
+            <div className="pointer-events-none fixed bottom-24 lg:bottom-auto lg:absolute left-1/2 -translate-x-1/2 z-50">
+              <div className="rounded-full border border-white/10 bg-black/50 px-4 py-2 text-xs text-zinc-200 backdrop-blur">
                 {toast}
               </div>
             </div>
           ) : null}
-
-          {/* Keyframes */}
-          <style>{`
-            @keyframes shimmer {
-              0% { transform: translateX(-100%); opacity: .0; }
-              30% { opacity: .6; }
-              100% { transform: translateX(100%); opacity: .0; }
-            }
-            .animate-\\[shimmer_1\\.4s_linear_infinite\\]{
-              animation: shimmer 1.4s linear infinite;
-            }
-            .scrollbar-thin::-webkit-scrollbar { width: 10px; }
-            .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); border-radius: 999px; }
-            .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-          `}</style>
         </div>
       </div>
-    </div>
+        </div>
+      )}
+    </>
   );
 }
