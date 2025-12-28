@@ -53,26 +53,27 @@ const CommerceHome = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [addQty, setAddQty] = useState(1);
 
-  // Button system (green primary + clean secondary + consistent icon buttons)
+  // Button system (blue primary + clean secondary + consistent icon buttons)
   const btnBase =
     "inline-flex items-center justify-center gap-2 whitespace-nowrap select-none " +
     "h-12 px-5 rounded-2xl text-sm font-semibold transition " +
-    "ring-1 ring-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 " +
+    "ring-1 ring-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 " +
     "active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed";
 
   const btnPrimary =
     btnBase +
-    " bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/20";
+    " bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/25";
 
-  const btnSecondary = btnBase + " bg-white/6 hover:bg-white/10 text-white/90";
+  const btnSecondary =
+    btnBase + " bg-white/80 hover:bg-blue-50 text-blue-900";
 
   const iconBtn =
-    "h-11 w-11 rounded-2xl bg-white/10 hover:bg-white/15 " +
-    "ring-1 ring-white/10 backdrop-blur-md flex items-center justify-center transition";
+    "h-11 w-11 rounded-2xl bg-white/90 hover:bg-blue-50 " +
+    "ring-1 ring-slate-200 backdrop-blur-md flex items-center justify-center transition";
 
   const miniBtn =
-    "h-9 w-9 rounded-xl bg-white/6 hover:bg-white/12 " +
-    "ring-1 ring-white/10 flex items-center justify-center transition";
+    "h-9 w-9 rounded-xl bg-white/80 hover:bg-blue-50 " +
+    "ring-1 ring-slate-200 flex items-center justify-center transition";
 
   const product = useMemo(
     () => ({
@@ -112,7 +113,7 @@ const CommerceHome = () => {
       .join("%0A");
     const totalText = `Total: ${fmtINR(cartSubtotal)}`;
     const message = `Hello, I would like to order:%0A${itemsText}%0A${totalText}`;
-    const phone = "8921406772"; // Add your WhatsApp number here, e.g. "919999999999"
+    const phone = "9633442126"; // Add your WhatsApp number here, e.g. "919999999999"
     window.open(`https://wa.me/${phone}?text=${message}`, "_blank");
   }, [cartItems, cartSubtotal]);
 
@@ -249,14 +250,14 @@ const CommerceHome = () => {
       <ColorBg />
 
       {/* Background shell */}
-      <div className="relative min-h-screen text-gray-100 bg-[#1a43bf]">
+      <div className="relative min-h-screen text-slate-900 bg-gradient-to-br from-white via-blue-50 to-blue-200">
         {/* Soft gradients */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-80 w-80 rounded-full bg-purple-600/20 blur-3xl" />
-          <div className="absolute top-48 -left-24 h-72 w-72 rounded-full bg-pink-600/15 blur-3xl" />
-          <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-blue-600/10 blur-3xl" />
-          <div className="absolute inset-0 bg-[radial-gradient(1200px_600px_at_50%_-10%,rgba(255,255,255,0.08),transparent_60%)]" />
-          <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:24px_24px]" />
+          <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-80 w-80 rounded-full bg-blue-400/30 blur-3xl" />
+          <div className="absolute top-48 -left-24 h-72 w-72 rounded-full bg-sky-300/25 blur-3xl" />
+          <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-indigo-400/20 blur-3xl" />
+          <div className="absolute inset-0 bg-[radial-gradient(1200px_600px_at_50%_-10%,rgba(59,130,246,0.10),transparent_60%)]" />
+          <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(30,64,175,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(30,64,175,0.08)_1px,transparent_1px)] [background-size:24px_24px]" />
         </div>
 
         {/* Header */}
@@ -268,14 +269,14 @@ const CommerceHome = () => {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <div className="inline-flex items-center gap-2">
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/10">
-                  <Sparkles className="h-4 w-4 text-purple-200" />
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-white/90 ring-1 ring-slate-200">
+                  <Sparkles className="h-4 w-4 text-blue-600" />
                 </span>
-                <h1 className="text-2xl font-bold tracking-tight text-white">
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                   Moonbliss Store
                 </h1>
               </div>
-              <p className="text-sm text-white/60">
+              <p className="text-sm text-slate-600">
                 Wellness essentials for you
               </p>
             </div>
@@ -287,7 +288,7 @@ const CommerceHome = () => {
               className={`relative ${iconBtn}`}
               aria-label="Cart"
             >
-              <ShoppingCart className="w-5 h-5 text-white/80" />
+              <ShoppingCart className="w-5 h-5 text-slate-800" />
 
               <AnimatePresence>
                 {cartCount > 0 && (
@@ -296,7 +297,7 @@ const CommerceHome = () => {
                     initial={{ scale: 0.6, opacity: 0.6 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.6, opacity: 0 }}
-                    className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full text-[11px] font-semibold text-white flex items-center justify-center bg-emerald-500 shadow shadow-emerald-500/30 ring-1 ring-white/10"
+                    className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full text-[11px] font-semibold text-white flex items-center justify-center bg-blue-600 shadow shadow-blue-500/30 ring-1 ring-white/20"
                   >
                     {cartCount}
                   </motion.span>
@@ -310,7 +311,7 @@ const CommerceHome = () => {
                     initial={{ opacity: 0, scale: 0.7 }}
                     animate={{ opacity: 1, scale: 1.2 }}
                     exit={{ opacity: 0, scale: 1.35 }}
-                    className="absolute inset-0 rounded-2xl ring-2 ring-emerald-400/50"
+                    className="absolute inset-0 rounded-2xl ring-2 ring-blue-400/60"
                   />
                 )}
               </AnimatePresence>
@@ -333,9 +334,9 @@ const CommerceHome = () => {
                 initial="hidden"
                 animate="visible"
                 transition={{ delay: 0.1 + i * 0.08 }}
-                className="shrink-0 inline-flex items-center gap-2 rounded-2xl bg-white/5 ring-1 ring-white/10 px-3 py-2 text-xs text-white/70"
+                className="shrink-0 inline-flex items-center gap-2 rounded-2xl bg-white/80 ring-1 ring-slate-200 px-3 py-2 text-xs text-slate-700"
               >
-                <span className="text-white/70">{c.icon}</span>
+                <span className="text-blue-700">{c.icon}</span>
                 <span>{c.label}</span>
               </motion.div>
             ))}
@@ -349,11 +350,11 @@ const CommerceHome = () => {
             initial="hidden"
             animate="visible"
             transition={{ delay: 0.08 }}
-            className="rounded-[28px] overflow-hidden bg-white/5 ring-1 ring-white/10 backdrop-blur-xl"
+            className="rounded-[28px] overflow-hidden bg-white/70 ring-1 ring-slate-200 backdrop-blur-xl"
           >
             {/* Hero + carousel */}
             <div className="relative p-4">
-              <div className="relative rounded-[22px] overflow-hidden bg-white/5 ring-1 ring-white/10">
+              <div className="relative rounded-[22px] overflow-hidden bg-white/60 ring-1 ring-slate-200">
                 <div className="relative w-full aspect-square">
                   <div
                     className="flex transition-transform duration-500 ease-out h-full"
@@ -371,28 +372,28 @@ const CommerceHome = () => {
                   </div>
 
                   {/* Gloss overlay */}
-                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_320px_at_20%_0%,rgba(255,255,255,0.22),transparent_55%)]" />
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_320px_at_20%_0%,rgba(255,255,255,0.50),transparent_55%)]" />
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-white/70 via-transparent to-transparent" />
 
                   {/* Navigation Arrows */}
                   <button
                     onClick={prevSlide}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-2xl bg-black/35 hover:bg-black/55 ring-1 ring-white/10 flex items-center justify-center backdrop-blur-sm transition"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-2xl bg-white/75 hover:bg-white ring-1 ring-slate-200 flex items-center justify-center backdrop-blur-sm transition"
                     aria-label="Previous image"
                   >
                     <IonIcon
                       icon={chevronBackOutline}
-                      className="text-white text-xl"
+                      className="text-slate-900 text-xl"
                     />
                   </button>
                   <button
                     onClick={nextSlide}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-2xl bg-black/35 hover:bg-black/55 ring-1 ring-white/10 flex items-center justify-center backdrop-blur-sm transition"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-2xl bg-white/75 hover:bg-white ring-1 ring-slate-200 flex items-center justify-center backdrop-blur-sm transition"
                     aria-label="Next image"
                   >
                     <IonIcon
                       icon={chevronForwardOutline}
-                      className="text-white text-xl"
+                      className="text-slate-900 text-xl"
                     />
                   </button>
 
@@ -406,8 +407,8 @@ const CommerceHome = () => {
                         whileTap={{ scale: 0.92 }}
                         className={`h-2 rounded-full transition-all ${
                           index === currentSlide
-                            ? "bg-emerald-400 w-8"
-                            : "bg-white/30 w-2 hover:bg-white/50"
+                            ? "bg-blue-600 w-8"
+                            : "bg-slate-400/50 w-2 hover:bg-slate-500/70"
                         }`}
                         aria-label={`Go to image ${index + 1}`}
                       />
@@ -419,20 +420,20 @@ const CommerceHome = () => {
                     onClick={() => setIsFavorite((v) => !v)}
                     whileHover={{ scale: 1.06 }}
                     whileTap={{ scale: 0.95 }}
-                    className="absolute top-3 right-3 w-10 h-10 rounded-2xl bg-black/35 hover:bg-black/55 ring-1 ring-white/10 flex items-center justify-center backdrop-blur-sm transition"
+                    className="absolute top-3 right-3 w-10 h-10 rounded-2xl bg-white/75 hover:bg-white ring-1 ring-slate-200 flex items-center justify-center backdrop-blur-sm transition"
                     aria-label="Favorite"
                   >
                     <Heart
                       className={`w-5 h-5 transition-all ${
                         isFavorite
                           ? "fill-pink-500 text-pink-500"
-                          : "text-white"
+                          : "text-slate-900"
                       }`}
                     />
                   </motion.button>
 
                   {/* Badge */}
-                  <div className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold text-white bg-emerald-500/90 ring-1 ring-white/10">
+                  <div className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold text-white bg-blue-600 ring-1 ring-white/20">
                     ✨ New
                   </div>
                 </div>
@@ -448,7 +449,7 @@ const CommerceHome = () => {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h2 className="text-xl font-bold text-white tracking-tight">
+                    <h2 className="text-xl font-bold text-slate-900 tracking-tight">
                       {product.title}
                     </h2>
                     <div className="flex items-center gap-2 mt-2">
@@ -460,7 +461,7 @@ const CommerceHome = () => {
                           />
                         ))}
                       </div>
-                      <span className="text-sm text-white/55">
+                      <span className="text-sm text-slate-600">
                         (2,345 reviews)
                       </span>
                     </div>
@@ -468,19 +469,19 @@ const CommerceHome = () => {
 
                   {/* Price capsule */}
                   <div className="shrink-0 text-right">
-                    <div className="px-3 py-2 rounded-2xl bg-white/5 ring-1 ring-white/10">
-                      <p className="text-[11px] text-white/50">Today</p>
-                      <p className="text-lg font-bold text-emerald-200">
+                    <div className="px-3 py-2 rounded-2xl bg-white/80 ring-1 ring-slate-200">
+                      <p className="text-[11px] text-slate-500">Today</p>
+                      <p className="text-lg font-bold text-blue-700">
                         {fmtINR(product.price)}
                       </p>
                     </div>
-                    <p className="mt-1 text-xs text-white/35 line-through">
+                    <p className="mt-1 text-xs text-slate-500 line-through">
                       {fmtINR(product.compareAt)}
                     </p>
                   </div>
                 </div>
 
-                <p className="text-sm text-white/70 leading-relaxed">
+                <p className="text-sm text-slate-700 leading-relaxed">
                   {product.description}
                 </p>
 
@@ -493,10 +494,10 @@ const CommerceHome = () => {
                   ].map((f, i) => (
                     <div
                       key={i}
-                      className="rounded-2xl bg-white/5 ring-1 ring-white/10 p-3 text-center"
+                      className="rounded-2xl bg-white/80 ring-1 ring-slate-200 p-3 text-center"
                     >
-                      <p className="text-[11px] text-white/45">{f.top}</p>
-                      <p className="text-xs font-semibold text-white">
+                      <p className="text-[11px] text-slate-500">{f.top}</p>
+                      <p className="text-xs font-semibold text-slate-900">
                         {f.bottom}
                       </p>
                     </div>
@@ -517,9 +518,7 @@ const CommerceHome = () => {
                 {/* Secondary actions */}
                 <div className="grid grid-cols-2 gap-3">
                   <button className={`w-full ${btnSecondary}`}>Buy Now</button>
-                  <button className={`w-full ${btnSecondary}`}>
-                    Gift This
-                  </button>
+                  <button className={`w-full ${btnSecondary}`}>Gift This</button>
                 </div>
               </motion.div>
             </div>
@@ -531,9 +530,9 @@ const CommerceHome = () => {
             initial="hidden"
             animate="visible"
             transition={{ delay: 0.22 }}
-            className="rounded-[28px] bg-white/5 ring-1 ring-white/10 backdrop-blur-xl p-4"
+            className="rounded-[28px] bg-white/70 ring-1 ring-slate-200 backdrop-blur-xl p-4"
           >
-            <h3 className="text-lg font-semibold text-white mb-3">
+            <h3 className="text-lg font-semibold text-slate-900 mb-3">
               What&apos;s Included
             </h3>
             <div className="space-y-2">
@@ -551,12 +550,12 @@ const CommerceHome = () => {
                   whileInView="visible"
                   transition={{ delay: 0.1 + idx * 0.05 }}
                   viewport={{ once: true }}
-                  className="flex items-center gap-3 p-3 rounded-2xl bg-black/20 ring-1 ring-white/10"
+                  className="flex items-center gap-3 p-3 rounded-2xl bg-white/80 ring-1 ring-slate-200"
                 >
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-xl bg-emerald-500/20 ring-1 ring-white/10 text-white font-bold">
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-xl bg-blue-600/10 ring-1 ring-slate-200 text-blue-700 font-bold">
                     ✓
                   </span>
-                  <span className="text-sm text-white/75">{item}</span>
+                  <span className="text-sm text-slate-700">{item}</span>
                 </motion.div>
               ))}
             </div>
@@ -568,9 +567,9 @@ const CommerceHome = () => {
             initial="hidden"
             animate="visible"
             transition={{ delay: 0.28 }}
-            className="rounded-[28px] bg-white/5 ring-1 ring-white/10 backdrop-blur-xl p-4"
+            className="rounded-[28px] bg-white/70 ring-1 ring-slate-200 backdrop-blur-xl p-4"
           >
-            <h3 className="text-lg font-semibold text-white mb-3">
+            <h3 className="text-lg font-semibold text-slate-900 mb-3">
               Why Choose Us
             </h3>
 
@@ -599,13 +598,13 @@ const CommerceHome = () => {
               ].map((b, i) => (
                 <div
                   key={i}
-                  className="rounded-[22px] p-4 bg-white/5 ring-1 ring-white/10"
+                  className="rounded-[22px] p-4 bg-white/80 ring-1 ring-slate-200"
                 >
                   <div className="text-3xl mb-2">{b.emoji}</div>
-                  <h4 className="font-semibold text-white text-sm mb-1">
+                  <h4 className="font-semibold text-slate-900 text-sm mb-1">
                     {b.title}
                   </h4>
-                  <p className="text-xs text-white/55 leading-relaxed">
+                  <p className="text-xs text-slate-600 leading-relaxed">
                     {b.text}
                   </p>
                 </div>
@@ -619,9 +618,9 @@ const CommerceHome = () => {
             initial="hidden"
             animate="visible"
             transition={{ delay: 0.34 }}
-            className="rounded-[28px] bg-white/5 ring-1 ring-white/10 backdrop-blur-xl p-4"
+            className="rounded-[28px] bg-white/70 ring-1 ring-slate-200 backdrop-blur-xl p-4"
           >
-            <h3 className="text-lg font-semibold text-white mb-3">
+            <h3 className="text-lg font-semibold text-slate-900 mb-3">
               Customer Reviews
             </h3>
 
@@ -640,10 +639,10 @@ const CommerceHome = () => {
               ].map((review, idx) => (
                 <div
                   key={idx}
-                  className="rounded-[22px] bg-black/20 p-4 ring-1 ring-white/10"
+                  className="rounded-[22px] bg-white/80 p-4 ring-1 ring-slate-200"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold text-white text-sm">
+                    <h4 className="font-semibold text-slate-900 text-sm">
                       {review.name}
                     </h4>
                     <div className="flex gap-1">
@@ -655,7 +654,7 @@ const CommerceHome = () => {
                       ))}
                     </div>
                   </div>
-                  <p className="text-xs text-white/60">{review.text}</p>
+                  <p className="text-xs text-slate-600">{review.text}</p>
                 </div>
               ))}
             </div>
@@ -667,9 +666,9 @@ const CommerceHome = () => {
             initial="hidden"
             animate="visible"
             transition={{ delay: 0.4 }}
-            className="rounded-[28px] bg-white/5 ring-1 ring-white/10 backdrop-blur-xl p-4"
+            className="rounded-[28px] bg-white/70 ring-1 ring-slate-200 backdrop-blur-xl p-4"
           >
-            <h3 className="text-lg font-semibold text-white mb-3">
+            <h3 className="text-lg font-semibold text-slate-900 mb-3">
               You Might Also Like
             </h3>
 
@@ -681,7 +680,7 @@ const CommerceHome = () => {
                 <motion.div
                   key={idx}
                   whileHover={{ y: -4 }}
-                  className="rounded-[22px] bg-black/20 p-3 ring-1 ring-white/10 cursor-pointer hover:bg-black/30 transition"
+                  className="rounded-[22px] bg-white/80 p-3 ring-1 ring-slate-200 cursor-pointer hover:bg-white transition"
                   onClick={() => {
                     const id = `related-${idx}`;
                     setCartItems((prev) => {
@@ -707,10 +706,10 @@ const CommerceHome = () => {
                   }}
                 >
                   <div className="text-3xl mb-2">{item.emoji}</div>
-                  <h4 className="font-semibold text-white text-sm mb-1">
+                  <h4 className="font-semibold text-slate-900 text-sm mb-1">
                     {item.name}
                   </h4>
-                  <p className="text-sm font-semibold text-emerald-200">
+                  <p className="text-sm font-semibold text-blue-700">
                     {fmtINR(item.price)}
                   </p>
                 </motion.div>
@@ -728,11 +727,13 @@ const CommerceHome = () => {
               exit={{ opacity: 0, y: 10, scale: 0.98 }}
               className="fixed left-1/2 -translate-x-1/2 bottom-6 z-[60] w-[min(92vw,420px)]"
             >
-              <div className="rounded-2xl bg-black/70 backdrop-blur-xl ring-1 ring-white/10 px-4 py-3">
-                <div className="text-sm font-semibold text-white">
+              <div className="rounded-2xl bg-white/90 backdrop-blur-xl ring-1 ring-blue-200 px-4 py-3 shadow-lg shadow-blue-500/10">
+                <div className="text-sm font-semibold text-slate-900">
                   {toast.title}
                 </div>
-                <div className="text-xs text-white/60 mt-0.5">{toast.body}</div>
+                <div className="text-xs text-slate-600 mt-0.5">
+                  {toast.body}
+                </div>
               </div>
             </motion.div>
           )}
@@ -747,7 +748,7 @@ const CommerceHome = () => {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setCartOpen(false)}
-                className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-[2px]"
+                className="fixed inset-0 z-[70] bg-slate-900/30 backdrop-blur-[2px]"
                 aria-label="Close cart overlay"
               />
               <motion.aside
@@ -755,15 +756,15 @@ const CommerceHome = () => {
                 animate={{ x: 0 }}
                 exit={{ x: 420 }}
                 transition={{ type: "spring", stiffness: 320, damping: 30 }}
-                className="fixed right-0 top-0 z-[80] h-1/2 w-[min(92vw,420px)] bg-[#0B0B10]/95 ring-1 ring-white/10 backdrop-blur-xl"
+                className="fixed right-0 top-0 z-[80] h-1/2 w-[min(92vw,420px)] bg-gradient-to-b from-white via-blue-50 to-blue-100 ring-1 ring-slate-200 backdrop-blur-xl"
               >
                 <div className="p-4 h-full flex flex-col">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-lg font-bold text-white">
+                      <div className="text-lg font-bold text-slate-900">
                         Your Cart
                       </div>
-                      <div className="text-xs text-white/60">
+                      <div className="text-xs text-slate-600">
                         {cartCount > 0
                           ? `${cartCount} item(s)`
                           : "Cart is empty"}
@@ -775,22 +776,22 @@ const CommerceHome = () => {
                       className={miniBtn}
                       aria-label="Close cart"
                     >
-                      <X className="h-5 w-5 text-white/80" />
+                      <X className="h-5 w-5 text-slate-800" />
                     </button>
                   </div>
 
                   <div className="mt-4 flex-1 overflow-auto space-y-3 pr-1">
                     {cartItems.length === 0 ? (
-                      <div className="rounded-2xl bg-white/5 ring-1 ring-white/10 p-4 text-sm text-white/70">
+                      <div className="rounded-2xl bg-white/80 ring-1 ring-slate-200 p-4 text-sm text-slate-700">
                         Add items to see quantity controls and subtotal.
                       </div>
                     ) : (
                       cartItems.map((it) => (
                         <div
                           key={it.id}
-                          className="rounded-2xl bg-white/5 ring-1 ring-white/10 p-3 flex gap-3"
+                          className="rounded-2xl bg-white/80 ring-1 ring-slate-200 p-3 flex gap-3"
                         >
-                          <div className="h-14 w-14 rounded-xl overflow-hidden bg-white/10 ring-1 ring-white/10 shrink-0">
+                          <div className="h-14 w-14 rounded-xl overflow-hidden bg-white ring-1 ring-slate-200 shrink-0">
                             <img
                               src={it.image}
                               alt={it.title}
@@ -801,10 +802,10 @@ const CommerceHome = () => {
                           <div className="min-w-0 flex-1">
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0">
-                                <div className="text-sm font-semibold text-white truncate">
+                                <div className="text-sm font-semibold text-slate-900 truncate">
                                   {it.title}
                                 </div>
-                                <div className="text-xs text-white/60 mt-0.5">
+                                <div className="text-xs text-slate-600 mt-0.5">
                                   {fmtINR(it.price)} each
                                 </div>
                               </div>
@@ -814,21 +815,21 @@ const CommerceHome = () => {
                                 className={miniBtn}
                                 aria-label="Remove item"
                               >
-                                <Trash2 className="h-4 w-4 text-white/70" />
+                                <Trash2 className="h-4 w-4 text-slate-700" />
                               </button>
                             </div>
 
                             <div className="mt-3 flex items-center justify-between">
-                              <div className="inline-flex items-center gap-2 rounded-2xl bg-black/25 ring-1 ring-white/10 p-1.5">
+                              <div className="inline-flex items-center gap-2 rounded-2xl bg-white/70 ring-1 ring-slate-200 p-1.5">
                                 <button
                                   onClick={() => decQty(it.id)}
                                   className={miniBtn}
                                   aria-label="Decrease quantity"
                                 >
-                                  <Minus className="h-4 w-4 text-white/80" />
+                                  <Minus className="h-4 w-4 text-slate-800" />
                                 </button>
 
-                                <div className="w-10 text-center text-sm font-semibold text-white">
+                                <div className="w-10 text-center text-sm font-semibold text-slate-900">
                                   {it.qty}
                                 </div>
 
@@ -837,11 +838,11 @@ const CommerceHome = () => {
                                   className={miniBtn}
                                   aria-label="Increase quantity"
                                 >
-                                  <Plus className="h-4 w-4 text-white/80" />
+                                  <Plus className="h-4 w-4 text-slate-800" />
                                 </button>
                               </div>
 
-                              <div className="text-sm font-semibold text-white">
+                              <div className="text-sm font-semibold text-slate-900">
                                 {fmtINR(it.price * it.qty)}
                               </div>
                             </div>
@@ -851,10 +852,10 @@ const CommerceHome = () => {
                     )}
                   </div>
 
-                  <div className="pt-4 border-t border-white/10 space-y-3">
+                  <div className="pt-4 border-t border-slate-200 space-y-3">
                     <div className="flex items-center justify-between">
-                      <div className="text-sm text-white/60">Subtotal</div>
-                      <div className="text-lg font-bold text-white">
+                      <div className="text-sm text-slate-600">Subtotal</div>
+                      <div className="text-lg font-bold text-slate-900">
                         {fmtINR(cartSubtotal)}
                       </div>
                     </div>
@@ -876,7 +877,7 @@ const CommerceHome = () => {
                       </button>
                     </div>
 
-                    <div className="text-[11px] text-white/45">
+                    <div className="text-[11px] text-slate-500">
                       Demo cart only. Quantities and badge update live.
                     </div>
                   </div>
@@ -894,7 +895,7 @@ const CommerceHome = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-[2px]"
+                className="fixed inset-0 z-[90] bg-slate-900/30 backdrop-blur-[2px]"
                 onClick={closeAddModal}
               />
               <motion.div
@@ -902,33 +903,34 @@ const CommerceHome = () => {
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 60, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 320, damping: 30 }}
-                className="fixed left-1/2 top-1/2 z-[100] -translate-x-1/2 -translate-y-1/2 bg-[#181A20] rounded-2xl shadow-xl ring-1 ring-white/10 w-[min(92vw,350px)] p-6"
+                className="fixed left-1/2 top-1/2 z-[100] -translate-x-1/2 -translate-y-1/2 bg-white/90 rounded-2xl shadow-xl ring-1 ring-blue-200 w-[min(92vw,350px)] p-6 backdrop-blur-xl"
               >
                 <div className="flex items-center gap-4">
                   <img
                     src={product.images[0]}
                     alt={product.title}
-                    className="h-16 w-16 rounded-xl object-cover ring-1 ring-white/10"
+                    className="h-16 w-16 rounded-xl object-cover ring-1 ring-slate-200"
                   />
                   <div>
-                    <div className="font-semibold text-white">
+                    <div className="font-semibold text-slate-900">
                       {product.title}
                     </div>
-                    <div className="text-sm text-white/60">
+                    <div className="text-sm text-slate-600">
                       {fmtINR(product.price)} each
                     </div>
                   </div>
                 </div>
+
                 <div className="mt-6 flex items-center justify-between">
-                  <div className="inline-flex items-center gap-2 rounded-2xl bg-black/25 ring-1 ring-white/10 p-1.5">
+                  <div className="inline-flex items-center gap-2 rounded-2xl bg-white/70 ring-1 ring-slate-200 p-1.5">
                     <button
                       onClick={() => setAddQty((q) => Math.max(1, q - 1))}
                       className={miniBtn}
                       aria-label="Decrease quantity"
                     >
-                      <Minus className="h-4 w-4 text-white/80" />
+                      <Minus className="h-4 w-4 text-slate-800" />
                     </button>
-                    <div className="w-10 text-center text-sm font-semibold text-white">
+                    <div className="w-10 text-center text-sm font-semibold text-slate-900">
                       {addQty}
                     </div>
                     <button
@@ -936,13 +938,14 @@ const CommerceHome = () => {
                       className={miniBtn}
                       aria-label="Increase quantity"
                     >
-                      <Plus className="h-4 w-4 text-white/80" />
+                      <Plus className="h-4 w-4 text-slate-800" />
                     </button>
                   </div>
-                  <div className="text-lg font-bold text-white">
+                  <div className="text-lg font-bold text-slate-900">
                     {fmtINR(product.price * addQty)}
                   </div>
                 </div>
+
                 <div className="mt-6 flex gap-3">
                   <button
                     onClick={closeAddModal}
