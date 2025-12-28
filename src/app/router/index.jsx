@@ -77,7 +77,13 @@ const AppRouter = () => {
 // Component inside router context for onboarding
 const OnboardingRouterContent = () => {
   useBackButton();
-  return <Route path="*" component={Onboarding} />;
+  return (
+    <Switch>
+      <Route exact path="/card" component={Card} />
+      <Route exact path="/login" component={Onboarding} />
+      <Redirect to="/card" />
+    </Switch>
+  );
 };
 
 // Component inside router context for main app
@@ -90,7 +96,6 @@ const MainRouterContent = () => {
         <Route exact path="/health" component={HealthHome} />
         <Route exact path="/activities" component={Activities} />
         <Route exact path="/music" component={Music} />
-        <Route exact path ="/login" component={Onboarding} />
         <Route exact path="/card" component={Card} />
         {/* quiz */}
         {/* <Route exact path="/quiz" component={Quiz} /> */}

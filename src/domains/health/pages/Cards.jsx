@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -16,6 +15,8 @@ import {
  */
 
 const BackgroundVisuals = ({ colorClass }) => {
+  // clear localstroage
+  localStorage.clear();
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {/* STATIC GRADIENT BASE */}
@@ -56,7 +57,11 @@ export default function OnboardingPortal({ onGetStarted }) {
         title: "Wellness, Refined",
         subtitle: "CURATED FOR YOU",
         desc: "Receive biological recommendations that adapt to your energy levels. No noise, just data.",
-        bullets: ["Phase-sync nutrition", "Intuitive rest cues", "Hydration intelligence"],
+        bullets: [
+          "Phase-sync nutrition",
+          "Intuitive rest cues",
+          "Hydration intelligence",
+        ],
         color: "from-blue-500 to-cyan-500",
       },
       {
@@ -64,7 +69,11 @@ export default function OnboardingPortal({ onGetStarted }) {
         title: "Elite Consistency",
         subtitle: "HABIT ARCHITECTURE",
         desc: "Small daily actions lead to monumental shifts. Track progress with elegant precision.",
-        bullets: ["Streak visualization", "Guided recovery", "Performance routines"],
+        bullets: [
+          "Streak visualization",
+          "Guided recovery",
+          "Performance routines",
+        ],
         color: "from-emerald-500 to-teal-500",
       },
     ],
