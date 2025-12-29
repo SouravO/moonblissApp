@@ -5,6 +5,7 @@ import { storageService } from "@/infrastructure/storage/storageService";
 import periodStorage from "@/infrastructure/storage/periodStorage";
 import { motion } from "framer-motion";
 import ColorBg from "@/components/ColorBg";
+import { getThemeConfig } from "@/infrastructure/theme/themeConfig";
 
 import { Bell, Heart, Sparkles, Droplets, Moon, Activity } from "lucide-react";
 import Water from "../components/Water";
@@ -140,6 +141,11 @@ const HealthHome = () => {
   const userName = userData?.name || "Sarah";
   const { nextPeriod, currentPhase, cycleLength } = usePeriodPrediction();
 
+  // Get dynamic theme based on period state
+  const theme = useMemo(() => {
+    return getThemeConfig(periodActive);
+  }, [periodActive]);
+
   // Memoize week calculations
   const { weekDays, today } = useMemo(() => {
     const today = new Date();
@@ -203,12 +209,12 @@ const HealthHome = () => {
     <PageLayout>
       <ColorBg />
 
-      {/* Minimal modern canvas - Blue background */}
-      <div className="relative min-h-screen bg-gradient-to-b from-blue-50 via-blue-100 to-blue-50 text-slate-900">
+      {/* Minimal modern canvas - Dynamic background based on theme */}
+      <div className={`relative min-h-screen ${theme.background} text-slate-900`}>
         {/* REFACTORED: Simplified background - removed extra decorations (-15 lines) */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-blue-300/40 blur-3xl" />
-          <div className="absolute top-24 -right-24 h-80 w-80 rounded-full bg-blue-200/30 blur-3xl" />
+          <div className={`absolute -top-24 -left-24 h-72 w-72 rounded-full ${theme.blobs.blob1} blur-3xl`} />
+          <div className={`absolute top-24 -right-24 h-80 w-80 rounded-full ${theme.blobs.blob2} blur-3xl`} />
         </div>
 
         {/* Header - Removed FloatingWellnessIcons */}
@@ -220,11 +226,11 @@ const HealthHome = () => {
           <div className="mx-auto max-w-3xl">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900">
-                  Hi, <span className="text-blue-700">{userName}</span>
+                <h1 className={`text-2xl sm:text-3xl font-semibold tracking-tight ${theme.header.text}`}>
+                  Hi, <span className={theme.header.userName}>{userName}</span>
                 </h1>
                 <p className="text-sm text-slate-500 mt-1">
-                  Today’s health insights
+                  Today's health insights
                 </p>
               </div>
 
@@ -233,7 +239,7 @@ const HealthHome = () => {
                 <motion.button
                   onClick={() => handlePeriodToggle()}
                   className={`relative inline-flex h-8 w-16 items-center rounded-full transition-colors ${
-                    periodActive ? "bg-red-600" : "bg-slate-300"
+                    periodActive ? (periodActive ? "bg-red-600" : "bg-slate-300") : "bg-slate-300"
                   }`}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -322,7 +328,7 @@ const HealthHome = () => {
         <div className="relative px-5 pb-10">
           <div className="mx-auto max-w-3xl space-y-6">
             {/* Mini Calendar Week Overview */}
-            <section className="rounded-3xl border border-slate-200 bg-white/80 backdrop-blur p-6 shadow-sm">
+            <section className={`${theme.borderRadius.card} border ${theme.card.default} ${theme.shadow} p-6`}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-base font-semibold text-slate-900">
                   Week Overview
@@ -396,50 +402,50 @@ const HealthHome = () => {
             </section>
 
             {/* Top hero card - REFACTORED: Removed framer-motion variants */}
-            {currentPhase?.name === "Menstrual" ? (
-              <section className="rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-600 to-sky-500 text-white p-6 shadow-sm">
+            {currentPhase?.name === "Menstrual" || periodActive ? (
+              <section className={`${theme.borderRadius.card} ${theme.card.bordered} ${theme.shadow} p-6`}>
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-xs uppercase tracking-wider text-white/80 mb-2">
+                    <p className={`text-xs uppercase tracking-wider ${periodActive ? "text-black/80" : "text-red-700/80"} mb-2`}>
                       Menstrual phase
                     </p>
-                    <h2 className="text-xl sm:text-2xl font-semibold leading-tight">
+                    <h2 className={`text-xl sm:text-2xl font-semibold leading-tight ${periodActive ? "text-black" : "text-slate-900"}`}>
                       Have your Moonbliss
                     </h2>
-                    <p className="text-sm text-white/85 mt-2">
+                    <p className={`text-sm ${periodActive ? "text-black/85" : "text-slate-600"} mt-2`}>
                       Prioritize rest, hydration, and warmth.
                     </p>
                   </div>
-                  <div className="rounded-2xl bg-white/15 border border-white/20 p-2">
-                    <Droplets className="w-5 h-5 text-white" />
+                  <div className={`rounded-2xl ${periodActive ? "bg-white/15 border-white/20" : "bg-red-50 border-red-200"} border p-2`}>
+                    <Droplets className={`w-5 h-5 ${periodActive ? "text-black" : "text-red-700"}`} />
                   </div>
                 </div>
               </section>
             ) : (
-              <section className="rounded-3xl border border-slate-200 bg-white/80 backdrop-blur shadow-sm p-6">
+              <section className={`${theme.borderRadius.card} border ${theme.card.default} ${theme.shadow} p-6`}>
                 <div className="flex items-end justify-between gap-6">
                   <div>
-                    <p className="text-xs uppercase tracking-wider text-slate-500 mb-2">
+                    <p className={`text-xs uppercase tracking-wider ${theme.text.secondary} mb-2`}>
                       Cycle progress
                     </p>
-                    <p className="text-4xl font-semibold text-slate-900">
+                    <p className={`text-4xl font-semibold ${theme.text.primary}`}>
                       {progress}%{/*  */}
                     </p>
-                    <p className="text-sm text-slate-500 mt-1">
+                    <p className={`text-sm ${theme.text.secondary} mt-1`}>
                       Keep steady habits. Small wins daily.
                     </p>
                   </div>
 
                   <div className="w-32 sm:w-40">
-                    <div className="h-2 w-full rounded-full bg-slate-200 overflow-hidden">
+                    <div className={`h-2 w-full rounded-full bg-slate-200 overflow-hidden`}>
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-blue-600 to-sky-400 transition-all duration-500"
+                        className={`h-full rounded-full bg-gradient-to-r ${theme.progressBar} transition-all duration-500`}
                         style={{ width: `${progress}%` }}
                       />
                     </div>
-                    <p className="mt-2 text-xs text-slate-500">
+                    <p className={`mt-2 text-xs ${theme.text.secondary}`}>
                       Next period in{" "}
-                      <span className="font-semibold text-slate-800">
+                      <span className={`font-semibold ${theme.text.primary}`}>
                         {nextPeriod?.daysUntil || 0} days
                       </span>
                     </p>
@@ -449,48 +455,48 @@ const HealthHome = () => {
             )}
 
             {/* Main phase card - REFACTORED: Simplified CSS */}
-            <section className="rounded-3xl border border-blue-100 bg-gradient-to-br from-white to-blue-50 p-6 shadow-sm">
+            <section className={`${theme.borderRadius.card} border ${theme.card.bordered} ${theme.shadow} p-6`}>
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-wider text-blue-700/80 mb-2">
+                  <p className={`text-xs uppercase tracking-wider ${theme.header.userName}/80 mb-2`}>
                     Current phase
                   </p>
-                  <h2 className="text-xl font-semibold text-slate-900">
+                  <h2 className={`text-xl font-semibold ${theme.text.primary}`}>
                     {currentPhase?.name || "Follicular"} Phase
                   </h2>
-                  <p className="text-sm text-slate-600 mt-2">
+                  <p className={`text-sm ${theme.text.secondary} mt-2`}>
                     {currentPhase?.description ||
                       "Time to boost energy and activity."}
                   </p>
                 </div>
 
-                <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-2">
-                  <Sparkles className="w-5 h-5 text-blue-700" />
+                <div className={`rounded-2xl bg-white border ${theme.card.default} shadow-sm p-2`}>
+                  <Sparkles className={`w-5 h-5 ${theme.header.userName}`} />
                 </div>
               </div>
 
               <div className="mt-5 flex items-center justify-between gap-4">
-                <p className="text-xs text-slate-500">
+                <p className={`text-xs ${theme.text.secondary}`}>
                   Day{" "}
-                  <span className="font-semibold text-slate-800">
+                  <span className={`font-semibold ${theme.text.primary}`}>
                     {currentPhase?.dayInCycle || 1}
                   </span>{" "}
                   of{" "}
-                  <span className="font-semibold text-slate-800">
+                  <span className={`font-semibold ${theme.text.primary}`}>
                     {currentPhase?.cycleDays || 28}
                   </span>
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className={`text-xs ${theme.text.secondary}`}>
                   Completion{" "}
-                  <span className="font-semibold text-slate-800">
+                  <span className={`font-semibold ${theme.text.primary}`}>
                     {currentPhase?.percentComplete ?? 50}%
                   </span>
                 </p>
               </div>
 
-              <div className="mt-3 h-2 w-full rounded-full bg-slate-200 overflow-hidden">
+              <div className={`mt-3 h-2 w-full rounded-full bg-slate-200 overflow-hidden`}>
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-blue-700 to-sky-400 transition-all duration-500"
+                  className={`h-full rounded-full bg-gradient-to-r ${theme.progressBar} transition-all duration-500`}
                   style={{
                     width: `${Math.min(
                       currentPhase?.percentComplete ?? 50,
@@ -530,29 +536,29 @@ const HealthHome = () => {
             </div>
 
             {/* Period Timeline */}
-            <section className="rounded-3xl border border-blue-100 bg-gradient-to-br from-white to-blue-50 p-6 shadow-sm">
+            <section className={`${theme.borderRadius.card} border ${theme.card.bordered} ${theme.shadow} p-6`}>
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-base font-semibold text-slate-900">
+                  <h3 className={`text-base font-semibold ${theme.text.primary}`}>
                     Period Timeline
                   </h3>
-                  <p className="text-xs text-slate-500 mt-1">Next period in</p>
+                  <p className={`text-xs ${theme.text.secondary} mt-1`}>Next period in</p>
                 </div>
-                <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-2">
-                  <Moon className="w-5 h-5 text-blue-700" />
+                <div className={`rounded-2xl bg-white border ${theme.card.default} shadow-sm p-2`}>
+                  <Moon className={`w-5 h-5 ${theme.header.userName}`} />
                 </div>
               </div>
 
               <div className="mt-4 flex items-baseline gap-2">
-                <div className="text-4xl font-semibold text-blue-700">
+                <div className={`text-4xl font-semibold ${theme.header.userName}`}>
                   {nextPeriod?.daysUntil || 0}
                 </div>
-                <div className="text-xs text-slate-500">days</div>
+                <div className={`text-xs ${theme.text.secondary}`}>days</div>
               </div>
 
-              <div className="mt-4 h-2 w-full rounded-full bg-slate-200 overflow-hidden">
+              <div className={`mt-4 h-2 w-full rounded-full bg-slate-200 overflow-hidden`}>
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-blue-700 to-sky-400 transition-all"
+                  className={`h-full rounded-full bg-gradient-to-r ${theme.progressBar} transition-all`}
                   style={{ width: `${progress}%` }}
                 />
               </div>

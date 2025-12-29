@@ -47,6 +47,17 @@ export const usePeriodPrediction = (options = {}) => {
     // Initial load
     useEffect(() => {
         loadPeriodData();
+
+        // Listen for period data changes from other components
+        const handlePeriodDataChange = () => {
+            loadPeriodData();
+        };
+
+        window.addEventListener("period-data-changed", handlePeriodDataChange);
+
+        return () => {
+            window.removeEventListener("period-data-changed", handlePeriodDataChange);
+        };
     }, [loadPeriodData]);
 
     // Derived: Check if we have valid period data

@@ -16,6 +16,7 @@ import BottomNav from "@/shared/layout/BottomNav";
 import Quiz from "../../shared/pages/Quiz";
 import Calendar from "../../domains/health/components/Calendar";
 import Card from "../../domains/health/pages/Cards";
+import AppointmentsPage from "../../domains/quiz/components/QuizModal";
 
 const HAS_VISITED_KEY = "moonbliss_hasVisited";
 
@@ -138,6 +139,7 @@ const MainRouterContent = () => {
         <Route exact path="/shop" component={CommerceHome} />
         <Route exact path="/calendar" component={Calendar} />
         <Route exact path="/profile" component={Profile} />
+        <Route exact path='/expert' component={AppointmentsPage} />
 
         {/* Main landing page is /health */}
         <Route exact path="/">

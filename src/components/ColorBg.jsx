@@ -65,3 +65,4 @@ const ColorBg = React.memo(() => {
 ColorBg.displayName = "ColorBg";
 
 export default ColorBg;
+    

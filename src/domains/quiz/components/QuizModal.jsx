@@ -1,331 +1,926 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { IonIcon } from "@ionic/react";
-import { closeOutline, checkmarkCircle, closeCircle } from "ionicons/icons";
+import {
+  arrowBackOutline,
+  searchOutline,
+  filterOutline,
+  calendarOutline,
+  timeOutline,
+  callOutline,
+  videocamOutline,
+  chatbubbleEllipsesOutline,
+  checkmarkCircleOutline,
+  heartOutline,
+  locationOutline,
+  shieldCheckmarkOutline,
+  pulseOutline,
+  leafOutline,
+  happyOutline,
+  documentTextOutline,
+  closeOutline,
+} from "ionicons/icons";
 
 /**
- * Quiz Modal Component
- * Displays 5 questions with options, tracks score, shows celebration on completion
+ * AppointmentsPage
+ * Page version of your modal.
+ *
+ * Props:
+ * - onClose?: () => void  // optional close handler
  */
-const QuizModal = ({ isOpen, onClose }) => {
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [score, setScore] = useState(0);
-  const [showResult, setShowResult] = useState(false);
-  const [answered, setAnswered] = useState(false);
-
-  // Quiz questions
-  const questions = [
-    {
-      id: 1,
-      question: "How many phases are in a typical menstrual cycle?",
-      options: ["2", "3", "4", "5"],
-      correctAnswer: "4",
-      emoji: "🌙",
-    },
-    {
-      id: 2,
-      question: "What is the average length of a menstrual cycle?",
-      options: ["21 days", "28 days", "35 days", "40 days"],
-      correctAnswer: "28 days",
-      emoji: "📅",
-    },
-    {
-      id: 3,
-      question: "Which hormone is responsible for ovulation?",
-      options: ["Estrogen", "Progesterone", "LH (Luteinizing Hormone)", "FSH"],
-      correctAnswer: "LH (Luteinizing Hormone)",
-      emoji: "🧬",
-    },
-    {
-      id: 4,
-      question: "What is the fertile window typically?",
-      options: ["Day 1-5", "Day 7-10", "Day 11-16", "Day 20-25"],
-      correctAnswer: "Day 11-16",
-      emoji: "🌸",
-    },
-    {
-      id: 5,
-      question: "Which vitamin helps reduce menstrual cramps?",
-      options: ["Vitamin A", "Vitamin B6", "Vitamin C", "Vitamin K"],
-      correctAnswer: "Vitamin B6",
-      emoji: "💊",
-    },
-  ];
-
-  const currentQuestion = questions[currentQuestionIndex];
-  const totalQuestions = questions.length;
-
-  const handleAnswerSelect = useCallback(
-    (answer) => {
-      if (answered) return;
-
-      setSelectedAnswer(answer);
-      setAnswered(true);
-
-      if (answer === currentQuestion.correctAnswer) {
-        setScore((prev) => prev + 1);
-      }
-
-      setTimeout(() => {
-        if (currentQuestionIndex < totalQuestions - 1) {
-          setCurrentQuestionIndex((prev) => prev + 1);
-          setSelectedAnswer(null);
-          setAnswered(false);
-        } else {
-          setShowResult(true);
-        }
-      }, 900);
-    },
-    [answered, currentQuestion, currentQuestionIndex, totalQuestions]
+const AppointmentsPage = ({ onClose }) => {
+  // ---------- Mock data ----------
+  const experts = useMemo(
+    () => [
+      {
+        id: "d1",
+        name: "Dr. Aanya Rao",
+        title: "OB-GYN, Menstrual Health",
+        tags: ["Periods", "PCOS", "Endometriosis"],
+        mode: ["Video", "In-person"],
+        language: ["English", "Hindi"],
+        city: "Bengaluru",
+        expYears: 12,
+        rating: 4.8,
+        reviews: 1320,
+        fee: 899,
+        next: "Today",
+        about:
+          "Cycle irregularities, pain, heavy bleeding, spotting, hormonal patterns, and evidence-based guidance.",
+        icon: heartOutline,
+        accent: "from-blue-600/25 to-cyan-600/15",
+      },
+      {
+        id: "d2",
+        name: "Dr. Meera Iyer",
+        title: "Gynaecologist, Fertility & Hormones",
+        tags: ["Irregular Cycle", "Fertility", "Hormones"],
+        mode: ["Video"],
+        language: ["English", "Tamil", "Hindi"],
+        city: "Chennai",
+        expYears: 9,
+        rating: 4.7,
+        reviews: 860,
+        fee: 799,
+        next: "Tomorrow",
+        about:
+          "Cycle length, ovulation, hormonal labs, fertility planning, and safe next steps.",
+        icon: pulseOutline,
+        accent: "from-cyan-600/20 to-blue-600/10",
+      },
+      {
+        id: "d3",
+        name: "Dr. Sana Farooq",
+        title: "Clinical Psychologist, Women's Mental Health",
+        tags: ["PMDD", "Anxiety", "Mood"],
+        mode: ["Video", "Chat"],
+        language: ["English", "Hindi"],
+        city: "Delhi",
+        expYears: 10,
+        rating: 4.9,
+        reviews: 540,
+        fee: 1199,
+        next: "This Week",
+        about:
+          "PMDD, mood swings, stress, sleep issues, and coping strategies aligned to cycle phases.",
+        icon: happyOutline,
+        accent: "from-blue-600/20 to-slate-700/10",
+      },
+      {
+        id: "d4",
+        name: "Dr. Kavya Nair",
+        title: "Nutritionist, Women's Wellness",
+        tags: ["Cramps", "Bloating", "Nutrition"],
+        mode: ["Video", "Chat"],
+        language: ["English", "Malayalam"],
+        city: "Kochi",
+        expYears: 7,
+        rating: 4.6,
+        reviews: 410,
+        fee: 599,
+        next: "Today",
+        about:
+          "Food plans for cramps, bloating, energy dips, iron support, and sustainable habits.",
+        icon: leafOutline,
+        accent: "from-cyan-600/18 to-blue-600/12",
+      },
+      {
+        id: "d5",
+        name: "Dr. Riya Sharma",
+        title: "Psychiatrist, Hormone-Mood Interface",
+        tags: ["Depression", "Sleep", "PMDD"],
+        mode: ["Video", "In-person"],
+        language: ["English", "Hindi"],
+        city: "Mumbai",
+        expYears: 14,
+        rating: 4.7,
+        reviews: 760,
+        fee: 1499,
+        next: "This Week",
+        about:
+          "Clinical evaluation for mood and sleep concerns that may worsen around periods.",
+        icon: shieldCheckmarkOutline,
+        accent: "from-blue-600/22 to-cyan-600/10",
+      },
+      {
+        id: "d6",
+        name: "Dr. Neha Kapoor",
+        title: "Physiotherapist, Pelvic Health",
+        tags: ["Pelvic Pain", "Back Pain", "Recovery"],
+        mode: ["Video", "In-person"],
+        language: ["English", "Hindi"],
+        city: "Pune",
+        expYears: 8,
+        rating: 4.5,
+        reviews: 320,
+        fee: 699,
+        next: "Tomorrow",
+        about:
+          "Pelvic pain, posture, period-related back pain, and gentle strength routines.",
+        icon: documentTextOutline,
+        accent: "from-cyan-600/16 to-slate-700/10",
+      },
+    ],
+    []
   );
 
-  const handleRestart = () => {
-    setCurrentQuestionIndex(0);
-    setSelectedAnswer(null);
-    setScore(0);
-    setShowResult(false);
-    setAnswered(false);
+  // ---------- Helpers ----------
+  const cx = (...xs) => xs.filter(Boolean).join(" ");
+  const safeJson = (s, fallback) => {
+    try {
+      const v = JSON.parse(s);
+      return v ?? fallback;
+    } catch {
+      return fallback;
+    }
+  };
+  const fmtINR = (n) => {
+    try {
+      return new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+        maximumFractionDigits: 0,
+      }).format(n);
+    } catch {
+      return `₹${n}`;
+    }
   };
 
-  const handleClose = () => {
-    handleRestart();
-    onClose();
-  };
+  // ---------- Persistence ----------
+  const LS_FAV = "mb_appointments_fav_v1";
+  const LS_BOOK = "mb_appointments_bookings_v1";
 
-  const getScoreMessage = () => {
-    const percentage = (score / totalQuestions) * 100;
-    if (percentage === 100) return { text: "Perfect! 🎉", color: "text-blue-200" };
-    if (percentage >= 80) return { text: "Excellent! 🌟", color: "text-blue-200" };
-    if (percentage >= 60) return { text: "Good job! 👏", color: "text-blue-200" };
-    if (percentage >= 40) return { text: "Keep learning! 📚", color: "text-blue-200" };
-    return { text: "Try again! 💪", color: "text-blue-200" };
-  };
-
-  // Standard button system
-  const btnBase =
-    "relative w-full min-h-[52px] px-4 py-3 rounded-xl font-semibold text-[15px] tracking-wide " +
-    "flex items-center justify-center gap-2 select-none " +
-    "transition-all duration-200 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-cyan-400/50 " +
-    "disabled:cursor-not-allowed";
-
-  const btnDefault =
-    "bg-slate-800/60 text-white border border-slate-600/50 " +
-    "shadow-[0_8px_18px_rgba(0,0,0,0.35)] " +
-    "hover:bg-slate-700/60 hover:border-slate-500/70";
-
-  const btnSelected =
-    "bg-slate-700/70 text-white border border-cyan-400/40 " +
-    "shadow-[0_10px_22px_rgba(34,211,238,0.12)]";
-
-  const btnCorrect =
-    "bg-emerald-600/85 text-white border border-emerald-300/60 " +
-    "shadow-[0_12px_26px_rgba(16,185,129,0.20)]";
-
-  const btnWrong =
-    "bg-rose-600/85 text-white border border-rose-300/60 " +
-    "shadow-[0_12px_26px_rgba(244,63,94,0.20)]";
-
-  const btnMuted =
-    "bg-slate-900/40 text-slate-400 border border-slate-700/50 shadow-none";
-
-  const getOptionClass = useCallback(
-    (option) => {
-      const isSelected = selectedAnswer === option;
-      const isCorrect = option === currentQuestion.correctAnswer;
-
-      if (answered) {
-        if (isCorrect) return `${btnBase} ${btnCorrect}`;
-        if (isSelected && !isCorrect) return `${btnBase} ${btnWrong}`;
-        return `${btnBase} ${btnMuted}`;
-      }
-
-      if (isSelected) return `${btnBase} ${btnSelected}`;
-      return `${btnBase} ${btnDefault}`;
-    },
-    [
-      answered,
-      selectedAnswer,
-      currentQuestion.correctAnswer,
-      btnBase,
-      btnCorrect,
-      btnWrong,
-      btnMuted,
-      btnSelected,
-      btnDefault,
-    ]
+  const [favorites, setFavorites] = useState(() =>
+    safeJson(localStorage.getItem(LS_FAV), [])
+  );
+  const [bookings, setBookings] = useState(() =>
+    safeJson(localStorage.getItem(LS_BOOK), [])
   );
 
-  const primaryBtn =
-    "min-h-[52px] rounded-xl px-4 py-3 font-semibold text-[15px] tracking-wide " +
-    "transition-all duration-200 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-cyan-400/50";
+  const persistFav = useCallback((next) => {
+    setFavorites(next);
+    localStorage.setItem(LS_FAV, JSON.stringify(next));
+  }, []);
+  const persistBookings = useCallback((next) => {
+    setBookings(next);
+    localStorage.setItem(LS_BOOK, JSON.stringify(next));
+  }, []);
 
-  const primarySolid =
-    "bg-gradient-to-r from-blue-600 to-cyan-500 text-white border border-white/10 " +
-    "shadow-[0_10px_24px_rgba(59,130,246,0.18)] hover:brightness-110";
+  // ---------- UI state ----------
+  const [query, setQuery] = useState("");
+  const [activeTag, setActiveTag] = useState("All");
+  const [activeMode, setActiveMode] = useState("All");
+  const [activeCity, setActiveCity] = useState("All");
+  const [sortBy, setSortBy] = useState("Recommended");
 
-  const secondaryGhost =
-    "bg-slate-800/50 text-white border border-slate-600/50 " +
-    "shadow-[0_8px_18px_rgba(0,0,0,0.25)] hover:bg-slate-700/50 hover:border-slate-500/70";
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedExpert, setSelectedExpert] = useState(null);
 
-  if (!isOpen) return null;
+  const [bookingOpen, setBookingOpen] = useState(false);
+  const [bookingStep, setBookingStep] = useState("form"); // form | done
+  const [bookingMode, setBookingMode] = useState("Video");
+  const [bookingDate, setBookingDate] = useState("");
+  const [bookingSlot, setBookingSlot] = useState("");
+  const [bookingReason, setBookingReason] = useState("");
+  const [bookingNotes, setBookingNotes] = useState("");
+
+  const allTags = useMemo(() => {
+    const t = new Set(["All"]);
+    experts.forEach((e) => e.tags.forEach((x) => t.add(x)));
+    return Array.from(t);
+  }, [experts]);
+
+  const cities = useMemo(() => {
+    const c = new Set(["All"]);
+    experts.forEach((e) => c.add(e.city));
+    return Array.from(c);
+  }, [experts]);
+
+  const modes = useMemo(() => ["All", "Video", "In-person", "Chat"], []);
+  const timeSlots = useMemo(
+    () => ["09:30", "10:15", "11:00", "12:30", "15:00", "16:15", "18:00", "19:30"],
+    []
+  );
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+
+    let list = experts.filter((e) => {
+      const matchQ =
+        !q ||
+        e.name.toLowerCase().includes(q) ||
+        e.title.toLowerCase().includes(q) ||
+        e.tags.some((t) => t.toLowerCase().includes(q)) ||
+        e.city.toLowerCase().includes(q);
+
+      const matchTag = activeTag === "All" ? true : e.tags.includes(activeTag);
+      const matchMode = activeMode === "All" ? true : e.mode.includes(activeMode);
+      const matchCity = activeCity === "All" ? true : e.city === activeCity;
+
+      return matchQ && matchTag && matchMode && matchCity;
+    });
+
+    if (sortBy === "Top Rated") list = list.sort((a, b) => b.rating - a.rating);
+    if (sortBy === "Lowest Fee") list = list.sort((a, b) => a.fee - b.fee);
+    if (sortBy === "Most Experienced") list = list.sort((a, b) => b.expYears - a.expYears);
+
+    return list;
+  }, [experts, query, activeTag, activeMode, activeCity, sortBy]);
+
+  // ---------- Actions ----------
+  const toggleFav = useCallback(
+    (id) => {
+      const next = favorites.includes(id)
+        ? favorites.filter((x) => x !== id)
+        : [...favorites, id];
+      persistFav(next);
+    },
+    [favorites, persistFav]
+  );
+
+  const openProfile = useCallback((expert) => {
+    setSelectedExpert(expert);
+    setDrawerOpen(true);
+  }, []);
+
+  const openBooking = useCallback((expert) => {
+    setSelectedExpert(expert);
+    setBookingStep("form");
+    setBookingMode(expert.mode.includes("Video") ? "Video" : expert.mode[0]);
+    setBookingDate("");
+    setBookingSlot("");
+    setBookingReason("");
+    setBookingNotes("");
+    setBookingOpen(true);
+  }, []);
+
+  const canSubmit =
+    selectedExpert &&
+    bookingMode &&
+    bookingDate &&
+    bookingSlot &&
+    bookingReason.trim().length >= 6;
+
+  const submitBooking = useCallback(() => {
+    if (!canSubmit) return;
+
+    const b = {
+      id: `bk_${Date.now()}`,
+      expertId: selectedExpert.id,
+      expertName: selectedExpert.name,
+      mode: bookingMode,
+      date: bookingDate,
+      slot: bookingSlot,
+      reason: bookingReason.trim(),
+      notes: bookingNotes.trim(),
+      fee: selectedExpert.fee,
+      createdAt: new Date().toISOString(),
+      status: "Confirmed",
+    };
+
+    const next = [b, ...bookings];
+    persistBookings(next);
+    setBookingStep("done");
+  }, [
+    canSubmit,
+    selectedExpert,
+    bookingMode,
+    bookingDate,
+    bookingSlot,
+    bookingReason,
+    bookingNotes,
+    bookings,
+    persistBookings,
+  ]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      {/* Confetti Animation for Results */}
-      {showResult && (
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {[...Array(50)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute animate-confetti"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `-10%`,
-                animationDelay: `${Math.random() * 2}s`,
-                animationDuration: `${2 + Math.random() * 2}s`,
-              }}
-            >
-              <div
-                className="w-3 h-3 rounded-sm"
-                style={{
-                  backgroundColor: ["#1e40af", "#0369a1", "#0284c7", "#0ea5e9", "#06b6d4", "#22d3ee"][
-                    Math.floor(Math.random() * 6)
-                  ],
-                  transform: `rotate(${Math.random() * 360}deg)`,
-                }}
-              />
-            </div>
-          ))}
-        </div>
-      )}
+    <div className="min-h-screen bg-gradient-to-b from-white via-blue-50 to-blue-100">
+      {/* Background blobs */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-cyan-500/10 blur-3xl animate-pulse" />
+        <div className="absolute top-40 -right-24 h-80 w-80 rounded-full bg-blue-500/10 blur-3xl animate-pulse" />
+        <div className="absolute bottom-0 left-1/3 h-96 w-96 rounded-full bg-sky-500/10 blur-3xl animate-pulse" />
+      </div>
 
-      {/* CSS for animations */}
-      <style>{`
-        @keyframes confetti-fall {
-          0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-          100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
-        }
-        .animate-confetti { animation: confetti-fall 3s ease-out forwards; }
-        @keyframes bounce-in {
-          0% { transform: scale(0.5); opacity: 0; }
-          50% { transform: scale(1.05); }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        .animate-bounce-in { animation: bounce-in 0.45s ease-out forwards; }
-      `}</style>
-
-      <div className="relative w-[90%] max-w-md rounded-3xl bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 shadow-2xl shadow-blue-600/40 overflow-hidden border border-blue-500/20 group">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-transparent to-cyan-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
+      {/* Page container */}
+      <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 py-6">
         {/* Header */}
-        <div className="relative z-10 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 px-6 py-4 flex items-center justify-between overflow-hidden">
-          <div className="relative z-20 flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg">
-              <span className="text-xl">🧠</span>
+        <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-4 bg-white/60 backdrop-blur-md border-b border-blue-200/30">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => onClose?.()}
+              className="w-10 h-10 rounded-2xl bg-white/60 border border-blue-300/40 flex items-center justify-center hover:bg-white/80 active:scale-95 transition"
+              aria-label="Back"
+              title="Back"
+            >
+              <IonIcon icon={arrowBackOutline} className="text-xl text-slate-900" />
+            </button>
+
+            <div className="w-11 h-11 rounded-2xl bg-blue-600/20 border border-blue-400/30 flex items-center justify-center">
+              <IonIcon icon={calendarOutline} className="text-xl text-blue-600" />
             </div>
-            <div>
-              <h2 className="text-white font-black text-lg">Health Quiz</h2>
-              <p className="text-blue-100 text-sm">
-                {showResult ? "Results" : `Question ${currentQuestionIndex + 1} of ${totalQuestions}`}
-              </p>
+
+            <div className="flex-1">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-lg font-black leading-tight text-slate-900">
+                    Appointments
+                  </div>
+                  <div className="text-sm text-slate-600">
+                    Periods, women&apos;s physical health, mental health
+                  </div>
+                </div>
+              </div>
+
+              {/* Search */}
+              <div className="mt-3 flex items-center gap-2">
+                <div className="flex-1 relative">
+                  <IonIcon
+                    icon={searchOutline}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600"
+                  />
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search doctors, experts, tags, city"
+                    className="w-full h-11 pl-10 pr-3 rounded-xl bg-white/60 border border-blue-300/40 outline-none focus:ring-2 focus:ring-blue-400/40 text-slate-900 placeholder:text-slate-500"
+                  />
+                </div>
+
+                <button
+                  onClick={() => {
+                    if (
+                      activeTag !== "All" ||
+                      activeMode !== "All" ||
+                      activeCity !== "All" ||
+                      sortBy !== "Recommended"
+                    ) {
+                      setActiveTag("All");
+                      setActiveMode("All");
+                      setActiveCity("All");
+                      setSortBy("Recommended");
+                    } else {
+                      setSortBy((s) =>
+                        s === "Recommended"
+                          ? "Top Rated"
+                          : s === "Top Rated"
+                          ? "Lowest Fee"
+                          : s === "Lowest Fee"
+                          ? "Most Experienced"
+                          : "Recommended"
+                      );
+                    }
+                  }}
+                  className="h-11 px-3 rounded-xl bg-blue-600/20 border border-blue-400/30 hover:bg-blue-600/30 active:scale-[0.98] transition flex items-center gap-2"
+                  aria-label="Filters"
+                  title="Tap to reset filters, or cycle sort when already reset"
+                >
+                  <IonIcon icon={filterOutline} className="text-lg text-blue-600" />
+                  <span className="text-sm text-slate-700 hidden sm:inline">{sortBy}</span>
+                </button>
+              </div>
             </div>
           </div>
-          <button
-            onClick={handleClose}
-            className="relative z-20 w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-all active:scale-95"
-            aria-label="Close"
-          >
-            <IonIcon icon={closeOutline} className="text-white text-2xl" />
-          </button>
+
+          {/* Filters */}
+          <div className="mt-4">
+            <div className="flex flex-wrap gap-2">
+              {allTags.slice(0, 10).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setActiveTag(t)}
+                  className={cx(
+                    "px-3 py-1.5 rounded-full text-sm border transition active:scale-[0.98]",
+                    activeTag === t
+                      ? "bg-gradient-to-r from-blue-600 to-cyan-600 border-blue-500 text-white"
+                      : "bg-blue-50 border-blue-300/50 text-slate-700 hover:bg-blue-100"
+                  )}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <select
+                value={activeMode}
+                onChange={(e) => setActiveMode(e.target.value)}
+                className="h-11 rounded-xl bg-white/60 border border-blue-300/40 px-3 outline-none focus:ring-2 focus:ring-blue-400/40 text-slate-900"
+              >
+                {modes.map((m) => (
+                  <option key={m} value={m} className="bg-white text-slate-900">
+                    Mode: {m}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={activeCity}
+                onChange={(e) => setActiveCity(e.target.value)}
+                className="h-11 rounded-xl bg-white/60 border border-blue-300/40 px-3 outline-none focus:ring-2 focus:ring-blue-400/40 text-slate-900"
+              >
+                {cities.map((c) => (
+                  <option key={c} value={c} className="bg-white text-slate-900">
+                    City: {c}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="h-11 rounded-xl bg-white/60 border border-blue-300/40 px-3 outline-none focus:ring-2 focus:ring-blue-400/40 text-slate-900"
+              >
+                {["Recommended", "Top Rated", "Lowest Fee", "Most Experienced"].map((s) => (
+                  <option key={s} value={s} className="bg-white text-slate-900">
+                    Sort: {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
 
-        {/* Progress Bar */}
-        {!showResult && (
-          <div className="relative z-10 h-2 bg-slate-700/50 border-b border-blue-500/20">
+        {/* Body */}
+        <div className="py-6 overflow-y-auto max-h-[calc(100vh-180px)]">
+          {/* Bookings */}
+          <div className="mb-6 rounded-2xl bg-blue-50 border border-blue-200/50 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="font-black text-slate-900">Your bookings</div>
+                <div className="text-sm text-slate-600">Saved on this device</div>
+              </div>
+              <div className="text-sm text-slate-700 bg-blue-100 border border-blue-300/50 rounded-full px-3 py-1">
+                {bookings.length}
+              </div>
+            </div>
+
+            {bookings.length === 0 ? (
+              <div className="mt-3 text-sm text-slate-600">
+                No appointments yet. Book from the list below.
+              </div>
+            ) : (
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                {bookings.slice(0, 2).map((b) => (
+                  <div
+                    key={b.id}
+                    className="rounded-2xl bg-white/60 border border-blue-200/40 p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-bold text-slate-900">{b.expertName}</div>
+                        <div className="text-sm text-slate-600">
+                          {b.mode} • {b.date} • {b.slot}
+                        </div>
+                      </div>
+                      <div className="text-xs px-2 py-1 rounded-full bg-emerald-500/15 border border-emerald-300/30 text-emerald-700">
+                        {b.status}
+                      </div>
+                    </div>
+                    <div className="mt-2 text-sm text-slate-700">
+                      Reason: <span className="text-slate-600">{b.reason}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Experts */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filtered.map((e) => {
+              const FavIcon = favorites.includes(e.id)
+                ? checkmarkCircleOutline
+                : heartOutline;
+
+              return (
+                <div
+                  key={e.id}
+                  className="rounded-3xl border border-blue-400/30 bg-gradient-to-br from-blue-600 to-blue-700 overflow-hidden shadow-2xl shadow-blue-600/20"
+                >
+                  <div className={cx("p-5 bg-gradient-to-br", e.accent)}>
+                    <div className="flex items-start justify-between gap-3">
+                      <button
+                        onClick={() => openProfile(e)}
+                        className="flex-1 text-left"
+                        aria-label={`Open profile ${e.name}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center">
+                            <IonIcon icon={e.icon} className="text-2xl text-white" />
+                          </div>
+                          <div>
+                            <div className="font-black text-lg text-white">{e.name}</div>
+                            <div className="text-sm text-white/80">{e.title}</div>
+                          </div>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => toggleFav(e.id)}
+                        className="w-11 h-11 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center hover:bg-white/30 active:scale-95 transition"
+                        aria-label="Favorite"
+                        title={favorites.includes(e.id) ? "Saved" : "Save"}
+                      >
+                        <IonIcon icon={FavIcon} className="text-xl text-white" />
+                      </button>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {e.tags.slice(0, 4).map((t) => (
+                        <span
+                          key={t}
+                          className="text-xs px-2.5 py-1 rounded-full bg-white/20 border border-white/30 text-white"
+                        >
+                          {t}
+                        </span>
+                      ))}
+                      <span className="text-xs px-2.5 py-1 rounded-full bg-white/20 border border-white/30 text-white flex items-center gap-1">
+                        <IonIcon icon={locationOutline} />
+                        {e.city}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
+                      <div className="rounded-2xl bg-white/10 border border-white/20 p-3">
+                        <div className="text-white/70 text-xs">Rating</div>
+                        <div className="font-black text-white">{e.rating.toFixed(1)}</div>
+                        <div className="text-white/70 text-xs">{e.reviews} reviews</div>
+                      </div>
+                      <div className="rounded-2xl bg-white/10 border border-white/20 p-3">
+                        <div className="text-white/70 text-xs">Experience</div>
+                        <div className="font-black text-white">{e.expYears} yrs</div>
+                        <div className="text-white/70 text-xs">Verified</div>
+                      </div>
+                      <div className="rounded-2xl bg-white/10 border border-white/20 p-3">
+                        <div className="text-white/70 text-xs">Fee</div>
+                        <div className="font-black text-white">{fmtINR(e.fee)}</div>
+                        <div className="text-white/70 text-xs">Starting</div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                      <div className="text-sm text-white flex items-center gap-2">
+                        <IonIcon icon={timeOutline} className="text-white/80" />
+                        Next: <span className="text-white font-semibold">{e.next}</span>
+                      </div>
+
+                      <button
+                        onClick={() => openBooking(e)}
+                        className="h-11 px-4 rounded-3xl bg-white border border-white text-blue-600 font-bold hover:bg-white/90 active:scale-[0.98] transition flex items-center gap-2"
+                      >
+                        <IonIcon icon={calendarOutline} />
+                        Book
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="p-5 bg-blue-700/50">
+                    <div className="text-sm text-white/80 leading-relaxed">{e.about}</div>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {e.mode.map((m) => (
+                        <span
+                          key={m}
+                          className="text-xs px-2.5 py-1 rounded-full bg-white/20 border border-white/30 text-white flex items-center gap-1"
+                        >
+                          <IonIcon
+                            icon={
+                              m === "Video"
+                                ? videocamOutline
+                                : m === "Chat"
+                                ? chatbubbleEllipsesOutline
+                                : callOutline
+                            }
+                          />
+                          {m}
+                        </span>
+                      ))}
+                      <span className="text-xs px-2.5 py-1 rounded-full bg-white/20 border border-white/30 text-white">
+                        Languages: {e.language.join(", ")}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {filtered.length === 0 && (
+            <div className="mt-10 text-center text-slate-600">
+              No results. Change search or filters.
+            </div>
+          )}
+
+          {/* Footer safety */}
+          <div className="mt-8 rounded-2xl bg-emerald-500/10 border border-emerald-300/20 p-4">
+            <div className="flex items-start gap-2">
+              <IonIcon icon={shieldCheckmarkOutline} className="text-emerald-700 text-xl mt-0.5" />
+              <div className="text-sm text-emerald-900/90">
+                If you have severe bleeding, fainting, chest pain, or self-harm thoughts, seek urgent care immediately.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Profile Drawer */}
+        {drawerOpen && selectedExpert && (
+          <div className="fixed inset-0 z-40">
             <div
-              className="h-full bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-600 transition-all duration-500 shadow-lg shadow-blue-500/50"
-              style={{ width: `${((currentQuestionIndex + 1) / totalQuestions) * 100}%` }}
+              className="absolute inset-0 bg-black/55 backdrop-blur-sm"
+              onClick={() => setDrawerOpen(false)}
             />
+            <div className="absolute right-0 top-0 h-full w-full max-w-md bg-gradient-to-b from-white via-blue-50 to-blue-100 border-l border-blue-200/40 shadow-2xl">
+              <div className="p-5 border-b border-blue-200/40 flex items-center justify-between">
+                <div className="font-black text-lg text-slate-900">Expert profile</div>
+                <button
+                  onClick={() => setDrawerOpen(false)}
+                  className="w-10 h-10 rounded-full bg-white/70 border border-blue-200/40 flex items-center justify-center hover:bg-white active:scale-95 transition"
+                  aria-label="Close drawer"
+                >
+                  <IonIcon icon={closeOutline} className="text-2xl text-slate-900" />
+                </button>
+              </div>
+
+              <div className="p-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-14 h-14 rounded-2xl bg-blue-600/20 border border-blue-400/30 flex items-center justify-center">
+                    <IonIcon icon={selectedExpert.icon} className="text-3xl text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="font-black text-xl text-slate-900">{selectedExpert.name}</div>
+                    <div className="text-sm text-slate-600">{selectedExpert.title}</div>
+                  </div>
+                </div>
+
+                <div className="mt-4 rounded-2xl bg-blue-100/60 border border-blue-300/40 p-4">
+                  <div className="text-sm text-slate-700">
+                    <span className="text-slate-600">City:</span> {selectedExpert.city}
+                  </div>
+                  <div className="text-sm text-slate-700 mt-1">
+                    <span className="text-slate-600">Experience:</span> {selectedExpert.expYears} years
+                  </div>
+                  <div className="text-sm text-slate-700 mt-1">
+                    <span className="text-slate-600">Rating:</span> {selectedExpert.rating.toFixed(1)} (
+                    {selectedExpert.reviews} reviews)
+                  </div>
+                  <div className="text-sm text-slate-700 mt-1">
+                    <span className="text-slate-600">Fee:</span> {fmtINR(selectedExpert.fee)}
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <div className="font-bold mb-2 text-slate-900">Focus areas</div>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedExpert.tags.map((t) => (
+                      <span
+                        key={t}
+                        className="text-xs px-2.5 py-1 rounded-full bg-blue-100 border border-blue-300/50 text-slate-700"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <div className="font-bold mb-2 text-slate-900">About</div>
+                  <div className="text-sm text-slate-600 leading-relaxed">{selectedExpert.about}</div>
+                </div>
+
+                <div className="mt-5">
+                  <div className="font-bold mb-2 text-slate-900">Modes</div>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedExpert.mode.map((m) => (
+                      <span
+                        key={m}
+                        className="text-xs px-2.5 py-1 rounded-full bg-blue-100 border border-blue-300/50 text-slate-700 flex items-center gap-1"
+                      >
+                        <IonIcon
+                          icon={
+                            m === "Video"
+                              ? videocamOutline
+                              : m === "Chat"
+                              ? chatbubbleEllipsesOutline
+                              : callOutline
+                          }
+                        />
+                        {m}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-6 flex gap-3">
+                  <button
+                    onClick={() => openBooking(selectedExpert)}
+                    className="flex-1 h-12 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 border border-white/10 font-black text-white hover:brightness-110 active:scale-[0.98] transition flex items-center justify-center gap-2"
+                  >
+                    <IonIcon icon={calendarOutline} />
+                    Book
+                  </button>
+                  <button
+                    onClick={() => toggleFav(selectedExpert.id)}
+                    className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-400/30 flex items-center justify-center hover:bg-blue-600/30 active:scale-95 transition"
+                    aria-label="Save"
+                  >
+                    <IonIcon
+                      icon={favorites.includes(selectedExpert.id) ? checkmarkCircleOutline : heartOutline}
+                      className="text-xl text-blue-600"
+                    />
+                  </button>
+                </div>
+
+                <div className="mt-5 rounded-2xl bg-blue-100/60 border border-blue-300/40 p-4">
+                  <div className="flex items-start gap-2">
+                    <IonIcon icon={documentTextOutline} className="text-blue-600 text-xl mt-0.5" />
+                    <div className="text-sm text-slate-600">
+                      Demo booking only. Plug in real provider scheduling and payments later.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Content */}
-        <div className="relative z-10 p-6">
-          {!showResult ? (
-            <>
-              {/* Question */}
-              <div className="text-center mb-8">
-                <span className="text-6xl mb-4 block drop-shadow-lg">{currentQuestion.emoji}</span>
-                <h3 className="text-2xl font-black text-white leading-snug bg-gradient-to-r from-blue-200 via-cyan-100 to-blue-200 bg-clip-text text-transparent">
-                  {currentQuestion.question}
-                </h3>
+        {/* Booking Modal (kept as modal on top of page) */}
+        {bookingOpen && selectedExpert && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+            <div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setBookingOpen(false)}
+            />
+            <div className="relative w-full max-w-lg rounded-3xl bg-gradient-to-b from-white via-blue-50 to-blue-100 border border-blue-300/40 shadow-2xl overflow-hidden">
+              <div className="px-6 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 border-b border-blue-300/40 flex items-center justify-between">
+                <div>
+                  <div className="font-black text-lg text-white">Book appointment</div>
+                  <div className="text-sm text-white/80">
+                    {selectedExpert.name} • {fmtINR(selectedExpert.fee)}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setBookingOpen(false)}
+                  className="w-10 h-10 rounded-full bg-white/20 border border-white/30 flex items-center justify-center hover:bg-white/30 active:scale-95 transition"
+                  aria-label="Close booking"
+                >
+                  <IonIcon icon={closeOutline} className="text-2xl text-white" />
+                </button>
               </div>
 
-              {/* Options */}
-              <div className="space-y-3">
-                {currentQuestion.options.map((option, index) => {
-                  const isCorrect = option === currentQuestion.correctAnswer;
-                  const isSelected = selectedAnswer === option;
+              <div className="p-6">
+                {bookingStep === "form" ? (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="rounded-2xl bg-blue-100/60 border border-blue-300/40 p-3">
+                        <div className="text-xs text-slate-600 mb-1">Consultation mode</div>
+                        <div className="flex gap-2 flex-wrap">
+                          {selectedExpert.mode.map((m) => (
+                            <button
+                              key={m}
+                              onClick={() => setBookingMode(m)}
+                              className={cx(
+                                "px-3 py-2 rounded-xl border text-sm font-semibold transition active:scale-[0.98] flex items-center gap-2",
+                                bookingMode === m
+                                  ? "bg-gradient-to-r from-blue-600 to-cyan-600 border-blue-400 text-white"
+                                  : "bg-blue-50 border-blue-300/50 text-slate-700 hover:bg-blue-100"
+                              )}
+                            >
+                              <IonIcon
+                                icon={
+                                  m === "Video"
+                                    ? videocamOutline
+                                    : m === "Chat"
+                                    ? chatbubbleEllipsesOutline
+                                    : callOutline
+                                }
+                              />
+                              {m}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
 
-                  return (
+                      <div className="rounded-2xl bg-blue-100/60 border border-blue-300/40 p-3">
+                        <div className="text-xs text-slate-600 mb-1">Date</div>
+                        <input
+                          type="date"
+                          value={bookingDate}
+                          onChange={(e) => setBookingDate(e.target.value)}
+                          className="w-full h-11 rounded-xl bg-white/60 border border-blue-300/40 px-3 outline-none focus:ring-2 focus:ring-blue-400/40 text-slate-900"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-3 rounded-2xl bg-blue-100/60 border border-blue-300/40 p-3">
+                      <div className="text-xs text-slate-600 mb-2">Time slot</div>
+                      <div className="flex flex-wrap gap-2">
+                        {timeSlots.map((t) => (
+                          <button
+                            key={t}
+                            onClick={() => setBookingSlot(t)}
+                            className={cx(
+                              "px-3 py-2 rounded-xl border text-sm font-semibold transition active:scale-[0.98] flex items-center gap-2",
+                              bookingSlot === t
+                                ? "bg-gradient-to-r from-blue-600 to-cyan-600 border-blue-400 text-white"
+                                : "bg-blue-50 border-blue-300/50 text-slate-700 hover:bg-blue-100"
+                            )}
+                          >
+                            <IonIcon icon={timeOutline} />
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mt-3 rounded-2xl bg-blue-100/60 border border-blue-300/40 p-3">
+                      <div className="text-xs text-slate-600 mb-1">Reason for visit</div>
+                      <input
+                        value={bookingReason}
+                        onChange={(e) => setBookingReason(e.target.value)}
+                        placeholder="Example: severe cramps, irregular cycle, mood swings"
+                        className="w-full h-11 rounded-xl bg-white/60 border border-blue-300/40 px-3 outline-none focus:ring-2 focus:ring-blue-400/40 text-slate-900 placeholder:text-slate-500"
+                      />
+                      <div className="mt-2 text-xs text-slate-500">Minimum 6 characters</div>
+                    </div>
+
+                    <div className="mt-3 rounded-2xl bg-blue-100/60 border border-blue-300/40 p-3">
+                      <div className="text-xs text-slate-600 mb-1">Notes (optional)</div>
+                      <textarea
+                        value={bookingNotes}
+                        onChange={(e) => setBookingNotes(e.target.value)}
+                        placeholder="Any extra context you want the expert to know"
+                        rows={3}
+                        className="w-full rounded-xl bg-white/60 border border-blue-300/40 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-400/40 text-slate-900 placeholder:text-slate-500 resize-none"
+                      />
+                    </div>
+
+                    <div className="mt-5 flex gap-3">
+                      <button
+                        onClick={() => setBookingOpen(false)}
+                        className="flex-1 h-12 rounded-2xl bg-blue-100 border border-blue-300/50 font-black text-slate-700 hover:bg-blue-200 active:scale-[0.98] transition"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={submitBooking}
+                        disabled={!canSubmit}
+                        className={cx(
+                          "flex-1 h-12 rounded-2xl font-black border transition active:scale-[0.98] flex items-center justify-center gap-2",
+                          canSubmit
+                            ? "bg-gradient-to-r from-blue-600 to-cyan-500 border-blue-400 text-white hover:brightness-110"
+                            : "bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed"
+                        )}
+                      >
+                        <IonIcon icon={checkmarkCircleOutline} />
+                        Confirm
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="py-8 text-center">
+                    <div className="mx-auto w-16 h-16 rounded-2xl bg-emerald-500/30 border border-emerald-400/40 flex items-center justify-center">
+                      <IonIcon icon={checkmarkCircleOutline} className="text-4xl text-emerald-600" />
+                    </div>
+                    <div className="mt-4 text-2xl font-black text-slate-900">Appointment confirmed</div>
+                    <div className="mt-2 text-slate-600">
+                      {selectedExpert.name} • {bookingMode} • {bookingDate} • {bookingSlot}
+                    </div>
+
                     <button
-                      key={index}
-                      onClick={() => handleAnswerSelect(option)}
-                      disabled={answered}
-                      className={getOptionClass(option)}
+                      onClick={() => setBookingOpen(false)}
+                      className="mt-6 h-12 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 border border-white/10 font-black text-white hover:brightness-110 active:scale-[0.98] transition"
                     >
-                      {answered && isCorrect && (
-                        <IonIcon icon={checkmarkCircle} className="text-white text-xl" />
-                      )}
-                      {answered && isSelected && !isCorrect && (
-                        <IonIcon icon={closeCircle} className="text-white text-xl" />
-                      )}
-                      <span>{option}</span>
+                      Done
                     </button>
-                  );
-                })}
-              </div>
-            </>
-          ) : (
-            <div className="text-center py-8 animate-bounce-in">
-              <div className="text-8xl mb-6 drop-shadow-2xl">
-                {score === totalQuestions ? "🏆" : score >= 3 ? "🥈" : "🎯"}
-              </div>
-
-              <h3 className={`text-4xl font-black mb-2 ${getScoreMessage().color}`}>
-                {getScoreMessage().text}
-              </h3>
-
-              <p className="text-blue-300/80 text-lg mb-4">Your Score</p>
-
-              <div className="flex items-center justify-center gap-2 mb-8">
-                <span className="text-6xl font-black bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                  {score}
-                </span>
-                <span className="text-2xl text-blue-300/60">/ {totalQuestions}</span>
-              </div>
-
-              <div className="w-full bg-slate-700/50 rounded-full h-5 mb-8 overflow-hidden border border-blue-500/30 shadow-inner">
-                <div
-                  className="h-full bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-600 transition-all duration-700 shadow-lg shadow-blue-500/50"
-                  style={{ width: `${(score / totalQuestions) * 100}%` }}
-                />
-              </div>
-
-              <div className="flex gap-3">
-                <button onClick={handleRestart} className={`flex-1 ${primaryBtn} ${primarySolid}`}>
-                  Play Again 🔄
-                </button>
-                <button onClick={handleClose} className={`flex-1 ${primaryBtn} ${secondaryGhost}`}>
-                  Close
-                </button>
+                  </div>
+                )}
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-export default QuizModal;
+export default AppointmentsPage;

@@ -12,7 +12,7 @@ import { storageService } from "@/infrastructure/storage/storageService.js";
 
 /**
  * Floating Image Component - Individual image in the carousel
- * Images float above the white card and swipe independently  
+ * Images float above the white card and swipe independently
  * Uses percentage-based positioning for responsivenessbb
  */
 const FloatingImage = React.memo(

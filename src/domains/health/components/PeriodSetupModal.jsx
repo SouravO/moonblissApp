@@ -11,12 +11,19 @@ import {
   calculateNextPeriod,
   formatPeriodDate,
 } from "@/domains/health/services/periodPredictor";
+import { getThemeConfig } from "@/infrastructure/theme/themeConfig";
+import { usePeriodPrediction } from "@/domains/health/hooks/usePeriodPrediction";
 
 const PeriodSetupModal = ({ isOpen, onComplete, onSkip }) => {
   const [step, setStep] = useState(1);
   const [lastPeriodDate, setLastPeriodDate] = useState("");
   const [cycleLength, setCycleLength] = useState("28");
   const [predictedDate, setPredictedDate] = useState(null);
+
+  // Theme detection
+  const { currentPhase } = usePeriodPrediction();
+  const isDuringMenstruation = currentPhase?.name === "Menstrual";
+  const theme = getThemeConfig(isDuringMenstruation);
 
   const handleDateSubmit = () => {
     if (lastPeriodDate) {
@@ -47,10 +54,10 @@ const PeriodSetupModal = ({ isOpen, onComplete, onSkip }) => {
           {step === 1 && (
             <div className="text-center">
               <div className="text-6xl mb-6">📅</div>
-              <h2 className="text-2xl font-bold mb-2 text-gray-800">
+              <h2 className={`text-2xl font-bold mb-2 ${isDuringMenstruation ? 'text-red-800' : 'text-gray-800'}`}>
                 Track Your Cycle
               </h2>
-              <p className="text-gray-600 mb-8">
+              <p className={`${isDuringMenstruation ? 'text-red-600' : 'text-gray-600'} mb-8`}>
                 When did your last period start?
               </p>
 
@@ -72,7 +79,7 @@ const PeriodSetupModal = ({ isOpen, onComplete, onSkip }) => {
                 disabled={!lastPeriodDate}
                 className="mb-3 h-12 rounded-xl font-semibold"
                 style={{
-                  "--background": "linear-gradient(to right, #ec4899, #a855f7)",
+                  "--background": isDuringMenstruation ? "linear-gradient(to right, #dc2626, #be123c)" : "linear-gradient(to right, #ec4899, #a855f7)",
                 }}
               >
                 Continue
@@ -92,10 +99,10 @@ const PeriodSetupModal = ({ isOpen, onComplete, onSkip }) => {
           {step === 2 && (
             <div className="text-center">
               <div className="text-6xl mb-6">⏱️</div>
-              <h2 className="text-2xl font-bold mb-2 text-gray-800">
+              <h2 className={`text-2xl font-bold mb-2 ${isDuringMenstruation ? 'text-red-800' : 'text-gray-800'}`}>
                 Cycle Length
               </h2>
-              <p className="text-gray-600 mb-8">
+              <p className={`${isDuringMenstruation ? 'text-red-600' : 'text-gray-600'} mb-8`}>
                 How many days is your typical cycle?
               </p>
 
@@ -124,7 +131,7 @@ const PeriodSetupModal = ({ isOpen, onComplete, onSkip }) => {
                 disabled={!cycleLength || cycleLength < 21 || cycleLength > 35}
                 className="mb-3 h-12 rounded-xl font-semibold"
                 style={{
-                  "--background": "linear-gradient(to right, #ec4899, #a855f7)",
+                  "--background": isDuringMenstruation ? "linear-gradient(to right, #dc2626, #be123c)" : "linear-gradient(to right, #ec4899, #a855f7)",
                 }}
               >
                 Calculate
@@ -144,15 +151,15 @@ const PeriodSetupModal = ({ isOpen, onComplete, onSkip }) => {
           {step === 3 && (
             <div className="text-center">
               <div className="text-6xl mb-6">🎯</div>
-              <h2 className="text-2xl font-bold mb-2 text-gray-800">
+              <h2 className={`text-2xl font-bold mb-2 ${isDuringMenstruation ? 'text-red-800' : 'text-gray-800'}`}>
                 All Set!
               </h2>
-              <p className="text-gray-600 mb-6">
+              <p className={`${isDuringMenstruation ? 'text-red-600' : 'text-gray-600'} mb-6`}>
                 Based on your cycle, your next period is predicted for:
               </p>
 
-              <div className="bg-gradient-to-r from-pink-100 to-purple-100 rounded-2xl p-6 mb-8">
-                <div className="text-3xl font-bold text-pink-600">
+              <div className={`bg-gradient-to-r ${isDuringMenstruation ? 'from-red-100 to-rose-100' : 'from-pink-100 to-purple-100'} rounded-2xl p-6 mb-8`}>
+                <div className={`text-3xl font-bold ${isDuringMenstruation ? 'text-red-600' : 'text-pink-600'}`}>
                   {formatPeriodDate(predictedDate)}
                 </div>
               </div>
@@ -162,7 +169,7 @@ const PeriodSetupModal = ({ isOpen, onComplete, onSkip }) => {
                 onClick={handleFinish}
                 className="h-12 rounded-xl font-semibold"
                 style={{
-                  "--background": "linear-gradient(to right, #ec4899, #a855f7)",
+                  "--background": isDuringMenstruation ? "linear-gradient(to right, #dc2626, #be123c)" : "linear-gradient(to right, #ec4899, #a855f7)",
                 }}
               >
                 Get Started
