@@ -236,7 +236,7 @@ const HealthHome = () => {
 
               <div className="flex items-center gap-3">
                 {/* Period Toggle Switch - Custom */}
-                <motion.button
+                <div
                   onClick={() => handlePeriodToggle()}
                   className={`relative inline-flex h-8 w-16 items-center rounded-full transition-colors ${
                     periodActive ? (periodActive ? "bg-red-600" : "bg-slate-300") : "bg-slate-300"
@@ -258,7 +258,7 @@ const HealthHome = () => {
                       {periodActive ? "ON" : "OFF"}
                     </span>
                   </span>
-                </motion.button>
+                </div>
 
                 {/* Notification Button */}
                 <button className="w-11 h-11 rounded-2xl bg-white/80 border border-slate-200 shadow-sm flex items-center justify-center hover:bg-white transition">
@@ -291,7 +291,7 @@ const HealthHome = () => {
                 <input
                   type="date"
                   value={periodStartDate}
-                  onChange={(e) => setPeriodStartDate(e.target.value)}
+                  onChange={(e) => setPeriodStartDate(e.  target.value)}
                   className="w-full px-4 py-2 rounded-xl border border-slate-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500"
                 />
                 {periodStartDate && (

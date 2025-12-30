@@ -318,18 +318,20 @@ const ComprehensiveQuestionnaireModal = ({ isOpen, onClose, onComplete }) => {
                       : "bg-white border-2.5 border-blue-200 text-blue-700 hover:border-blue-500 hover:bg-blue-50 hover:shadow-lg hover:shadow-blue-200/50"
                   }`}
                   style={{
-                    animation: isSelected ? `popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both` : `slideUp 0.3s ease-out both`,
+                    animation: isSelected
+                      ? `popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both`
+                      : `slideUp 0.3s ease-out both`,
                     animationDelay: `${idx * 0.05}s`,
                   }}
                 >
                   {/* Animated shine effect */}
                   <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/40 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                  
+
                   {/* Pulse background for selected */}
                   {isSelected && (
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 opacity-20 animate-pulse" />
                   )}
-                  
+
                   <span className="relative z-10 flex items-center gap-2">
                     {isSelected && <span className="text-lg">✓</span>}
                     {option.label}
@@ -363,18 +365,20 @@ const ComprehensiveQuestionnaireModal = ({ isOpen, onClose, onComplete }) => {
                       : "bg-white border-2.5 border-blue-200 text-blue-700 hover:border-blue-500 hover:bg-blue-50 hover:shadow-lg hover:shadow-blue-200/50"
                   }`}
                   style={{
-                    animation: isSelected ? `popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both` : `slideUp 0.3s ease-out both`,
+                    animation: isSelected
+                      ? `popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both`
+                      : `slideUp 0.3s ease-out both`,
                     animationDelay: `${idx * 0.05}s`,
                   }}
                 >
                   {/* Animated shine effect */}
                   <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/40 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                  
+
                   {/* Pulse background for selected */}
                   {isSelected && (
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 opacity-20 animate-pulse" />
                   )}
-                  
+
                   <span className="relative z-10 flex items-center gap-2">
                     {isSelected && <span className="text-lg">✓</span>}
                     {option.label}
@@ -550,39 +554,44 @@ const ComprehensiveQuestionnaireModal = ({ isOpen, onClose, onComplete }) => {
           )}
 
           {/* Input area */}
-          <div className="mb-6 sm:mb-5">{renderInput()}</div>
+          <div className="mb-6 sm:mb-5 ">{renderInput()}</div>
 
           {/* Action button */}
-          <button
-            onClick={isLast ? handleSubmit : handleNext}
-            disabled={isSubmitting}
-            className="relative w-full py-4 sm:py-3.5 bg-gradient-to-r from-blue-600 via-blue-600 to-blue-700 text-white text-sm sm:text-base font-black rounded-[24px] sm:rounded-2xl transition-all duration-300 hover:shadow-2xl hover:shadow-blue-600/60 hover:-translate-y-1.5 active:translate-y-0 active:scale-95 disabled:opacity-50 disabled:hover:shadow-none disabled:hover:translate-y-0 shadow-xl shadow-blue-600/50 overflow-hidden group"
-          >
-            {/* Animated shine effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 animate-shimmer" />
-            
-            {/* Glow effect */}
-            <div className="absolute inset-0 rounded-[24px] sm:rounded-2xl bg-blue-500 opacity-0 group-hover:opacity-20 blur-lg transition-opacity duration-300" />
-            
-            <span className="relative z-10 flex items-center justify-center gap-2.5">
-              {isSubmitting ? (
-                <>
-                  <span className="inline-block animate-spin text-lg">⚙️</span>
-                  <span>Saving...</span>
-                </>
-              ) : isLast ? (
-                <>
-                  <span className="text-lg animate-bounce">✓</span>
-                  <span>Complete</span>
-                </>
-              ) : (
-                <>
-                  <span>Continue</span>
-                  <span className="inline-block animate-pulse">→</span>
-                </>
-              )}
-            </span>
-          </button>
+
+          <div className="flex justify-center items-center">
+            <div
+              onClick={isLast ? handleSubmit : handleNext}
+              disabled={isSubmitting}
+              className="relative w-3/4 flex justify-center items-center py-4 sm:py-3.5 bg-gradient-to-r from-blue-600 via-blue-600 to-blue-700 text-white text-sm sm:text-base font-black rounded-[24px] sm:rounded-2xl transition-all duration-300 hover:shadow-2xl hover:shadow-blue-600/60 hover:-translate-y-1.5 active:translate-y-0 active:scale-95 disabled:opacity-50 disabled:hover:shadow-none disabled:hover:translate-y-0 shadow-xl shadow-blue-600/50 overflow-hidden group"
+            >
+              {/* Animated shine effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 animate-shimmer" />
+
+              {/* Glow effect */}
+              <div className="absolute inset-0 rounded-[24px] sm:rounded-2xl bg-blue-500 opacity-0 group-hover:opacity-20 blur-lg transition-opacity duration-300" />
+
+              <span className="relative z-10 flex items-center justify-center gap-2.5">
+                {isSubmitting ? (
+                  <>
+                    <span className="inline-block animate-spin text-lg">
+                      ⚙️
+                    </span>
+                    <span>Saving...</span>
+                  </>
+                ) : isLast ? (
+                  <>
+                    <span className="text-lg animate-bounce">✓</span>
+                    <span>Complete</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Continue</span>
+                    <span className="inline-block animate-pulse">→</span>
+                  </>
+                )}
+              </span>
+            </div>
+          </div>
 
           {/* Animated decorative elements below button */}
           <div className="mt-4 sm:mt-3 flex justify-center items-center gap-1.5">
@@ -657,4 +666,3 @@ const ComprehensiveQuestionnaireModal = ({ isOpen, onClose, onComplete }) => {
 };
 
 export default ComprehensiveQuestionnaireModal;
-
