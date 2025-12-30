@@ -13,11 +13,13 @@ import {
   person,
 } from "ionicons/icons";
 import { useLocation, useHistory } from "react-router-dom";
+import { useModal } from "@/infrastructure/context/ModalContext";
 
 const BottomNav = () => {
   const location = useLocation();
   const history = useHistory();
   const [activeIndex, setActiveIndex] = useState(0);
+  const { isModalOpen } = useModal();
 
   const tabs = [
     { path: "/health", icon: homeOutline, iconActive: home, label: "Home" },
@@ -163,7 +165,7 @@ const BottomNav = () => {
         }
       `}</style>
 
-      <div className="nav-container">
+      <div className={`nav-container ${isModalOpen ? 'hidden' : ''}`}>
         <nav className="floating-nav">
           {tabs.map((tab, index) => {
             const isSelected = index === activeIndex;

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import AppRouter from "@/app/router";
 import { BackButtonProvider } from "@/infrastructure/context/BackButtonContext";
+import { ModalProvider } from "@/infrastructure/context/ModalContext";
 
 const App = () => {
   // Initialize notifications on app start (lazy load to prevent blocking)
@@ -44,7 +45,9 @@ const App = () => {
 
   return (
     <BackButtonProvider>
-      <AppRouter />
+      <ModalProvider>
+        <AppRouter />
+      </ModalProvider>
     </BackButtonProvider>
   );
 };

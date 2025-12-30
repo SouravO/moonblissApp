@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useModal } from "@/infrastructure/context/ModalContext";
 
 /**
  * Premium Chat Assistant UI
@@ -270,6 +271,8 @@ Red flags (prompt urgent care): heavy bleeding soaking pads hourly 2+ hours, fai
 Style: Short paragraphs, bullet points when helpful, practical "what to do now" + "when to see doctor".`.trim();
 
 export default function App({ isOpen = true, onClose = () => {}, showInput = true }) {
+  const { openModal, closeModal } = useModal();
+  
   const [state, setState] = useState(() =>
     safeJson(localStorage.getItem(LS_KEY), {
       activeId: null,
@@ -289,6 +292,15 @@ export default function App({ isOpen = true, onClose = () => {}, showInput = tru
   const taRef = useAutoGrowTextarea(input);
 
   const periodMode = !!state?.settings?.periodMode;
+
+  // Track modal open/close state
+  useEffect(() => {
+    if (isOpen) {
+      openModal();
+    } else {
+      closeModal();
+    }
+  }, [isOpen, openModal, closeModal]);
 
   // Initialize
   useEffect(() => {
@@ -598,14 +610,17 @@ export default function App({ isOpen = true, onClose = () => {}, showInput = tru
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white overflow-hidden">
+    <div className="fixed inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white overflow-hidden z-50">
       {/* Mobile header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 backdrop-blur-xl bg-slate-900/50 lg:hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 backdrop-blur-xl bg-slate-900/50 lg:hidden safe-top">
         <button
           onClick={onClose}
-          className="px-3 py-2 rounded-xl border border-white/10 bg-white/[0.05] hover:bg-white/[0.1] text-sm font-medium transition-all"
+          className="flex items-center justify-center h-10 w-10 rounded-lg border border-white/10 bg-white/[0.05] hover:bg-white/[0.1] transition-all"
+          title="Close chat"
         >
-          ← Back
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
         </button>
         <div className="text-sm font-medium text-slate-200 truncate max-w-[50%]">
           {activeChat?.title || "Chat"}
