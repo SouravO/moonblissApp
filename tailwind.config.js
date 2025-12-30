@@ -27,5 +27,25 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    function ({ addComponents }) {
+      addComponents({
+        '.btn-base': {
+          '@apply rounded-2xl px-4 py-3 h-12 flex items-center justify-center font-semibold transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed': {}
+        },
+        '.btn-primary': {
+          '@apply btn-base bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20': {}
+        },
+        '.btn-secondary': {
+          '@apply btn-base bg-white/10 hover:bg-white/15 text-white border border-white/20': {}
+        },
+        '.btn-icon': {
+          '@apply rounded-2xl w-10 h-10 flex items-center justify-center transition-all active:scale-95': {}
+        },
+        '.btn-icon-sm': {
+          '@apply rounded-xl w-9 h-9 flex items-center justify-center transition-all active:scale-95': {}
+        },
+      })
+    }
+  ],
 }

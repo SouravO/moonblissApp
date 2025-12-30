@@ -63,9 +63,9 @@ const THEME_CONFIG = {
     progressBar: "from-blue-600 to-sky-400",
 
     button: {
-      primary: "bg-blue-600 hover:bg-blue-700",
-      secondary: "bg-blue-100 hover:bg-blue-200",
-      text: "text-blue-900 hover:text-blue-800",
+      primary: "bg-blue-600 hover:bg-blue-700 rounded-2xl px-4 py-3 h-12",
+      secondary: "bg-blue-100 hover:bg-blue-200 rounded-2xl px-4 py-3 h-12",
+      text: "text-blue-900 hover:text-blue-800 rounded-2xl px-4 py-3 h-12",
     },
 
     heroCard: "border-blue-200 bg-white/80",
@@ -113,9 +113,9 @@ const THEME_CONFIG = {
     progressBar: "from-red-600 to-rose-400",
 
     button: {
-      primary: "bg-red-600 hover:bg-red-700",
-      secondary: "bg-red-100 hover:bg-red-200",
-      text: "text-red-900 hover:text-red-800",
+      primary: "bg-red-600 hover:bg-red-700 rounded-2xl px-4 py-3 h-12",
+      secondary: "bg-red-100 hover:bg-red-200 rounded-2xl px-4 py-3 h-12",
+      text: "text-red-900 hover:text-red-800 rounded-2xl px-4 py-3 h-12",
     },
 
     heroCard:

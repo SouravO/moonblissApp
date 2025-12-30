@@ -163,7 +163,7 @@ const Water = ({ className = "" }) => {
                   </div>
                   <button
                     onClick={handleClose}
-                    className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition"
+                    className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center hover:bg-white/30 transition"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -181,13 +181,13 @@ const Water = ({ className = "" }) => {
                       await handleYes();
                       handleClose();
                     }}
-                    className="px-6 py-2 rounded-xl bg-blue-500 text-white font-semibold hover:bg-blue-600 transition"
+                    className="px-4 py-3 h-12 rounded-2xl bg-blue-500 text-white font-semibold hover:bg-blue-600 transition flex items-center justify-center"
                   >
                     Yes
                   </button>
                   <button
                     onClick={handleClose}
-                    className="px-6 py-2 rounded-xl bg-slate-200 text-slate-700 font-semibold hover:bg-slate-300 transition"
+                    className="px-4 py-3 h-12 rounded-2xl bg-slate-200 text-slate-700 font-semibold hover:bg-slate-300 transition flex items-center justify-center"
                   >
                     No
                   </button>
@@ -203,7 +203,7 @@ const Water = ({ className = "" }) => {
               <div className="p-4 border-t border-slate-100">
                 <button
                   onClick={handleClose}
-                  className="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-xl hover:opacity-90 transition"
+                  className="w-full h-12 px-4 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-2xl hover:opacity-90 transition flex items-center justify-center"
                 >
                   Got it!
                 </button>

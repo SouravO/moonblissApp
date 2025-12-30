@@ -501,7 +501,7 @@ const Profile = () => {
           <header className="flex items-start justify-end mb-10 sm:mb-12">
             <div className="flex gap-2">
               {/* Customize Button */}
-              <motion.button
+              <div
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setIsEditing((s) => !s)}
@@ -513,10 +513,10 @@ const Profile = () => {
                 title={isEditing ? "Save Profile" : "Customize"}
               >
                 {isEditing ? <Check size={20} /> : <Pencil size={20} />}
-              </motion.button>
+              </div>
 
               {/* Export Button */}
-              <motion.button
+              <div
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={exportJSON}
@@ -524,10 +524,10 @@ const Profile = () => {
                 title="Export Profile"
               >
                 <Download size={20} />
-              </motion.button>
+              </div>
 
               {/* Logout Button */}
-              <motion.button
+              <div
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => logout("wipe_data")}
@@ -535,7 +535,7 @@ const Profile = () => {
                 title="Logout"
               >
                 <LogOut size={20} />
-              </motion.button>
+              </div>
             </div>
           </header>
 
@@ -995,23 +995,23 @@ const Profile = () => {
             </motion.section>
 
             {/* 7) Dangerous / Logout */} 
-            <motion.section className="md:col-span-12 flex flex-col sm:flex-row gap-4 mt-2">
-              <button
+            <div className="md:col-span-12 flex flex-col sm:flex-row gap-4 mt-2">
+              <div
                 onClick={wipeLocal}
                 className="flex-1 flex items-center justify-center gap-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 py-5 rounded-[2rem] font-black transition-all"
               >
                 <LogOut size={20} />
                 Wipe Local History
-              </button>
+              </div>
 
-              <button
+              <div
                 onClick={() => logout("wipe_data")}
                 className="flex-1 flex items-center justify-center gap-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 py-5 rounded-[2rem] font-black transition-all"
               >
                 <LogOut size={20} />
                 Logout (clear app data)
-              </button>
-            </motion.section>
+              </div>
+            </div>
           </div>
         </div>
       </div>

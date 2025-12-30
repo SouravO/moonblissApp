@@ -306,19 +306,19 @@ const HealthHome = () => {
               </div>
 
               <div className="flex gap-2">
-                <button
+                <div
                   className="flex-1 px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 transition"
                   onClick={() => cancelPeriodModal()}
                 >
                   Not Now
-                </button>
-                <button
+                </div>
+                <div
                   className="flex-1 px-4 py-3 rounded-2xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={() => savePeriodDate()}
                   disabled={!periodStartDate}
                 >
                   Yes, Track It
-                </button>
+                </div>
               </div>
             </motion.div>
           </div>

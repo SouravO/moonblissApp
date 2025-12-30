@@ -6,7 +6,7 @@ import { useQuestionnaireFlow } from "@/domains/health/hooks/useQuestionnaireFlo
 import { storageService } from "@/infrastructure/storage/storageService.js";
 import ComprehensiveQuestionnaireModal from "@/domains/health/components/ComprehensiveQuestionnaireModal.jsx";
 // Silk component removed - using CSS gradient instead for better performance
-
+import logo from '../../assets/Logo.png';
 const Onboarding = () => {
   const history = useHistory();
   const [email, setEmail] = useState("");
@@ -120,10 +120,14 @@ const Onboarding = () => {
               {/* Foreground */}
               <div className="relative z-[2] min-h-screen px-5 py-12 md:py-16 flex flex-col items-center justify-center">
                 {/* Logo */}
-                <div className="mb-5">
+                <div className="mb-3">
                   <div className="relative">
-                    <div className="text-[54px] md:text-[66px] font-extrabold tracking-[-0.05em] text-white/90 drop-shadow-[0_14px_40px_rgba(0,0,0,0.25)] animate-[floaty_4.8s_ease-in-out_infinite]">
-                      moonbliss
+                    <div className="text-[42px] sm:text-[51px] md:text-[62px] font-extrabold tracking-[-0.05em] text-white/90 drop-shadow-[0_14px_40px_rgba(0,0,0,0.25)] animate-[floaty_4.8s_ease-in-out_infinite]">
+                     <img
+  src={logo}
+  alt=""
+  className="w-[45%] sm:w-[60%] md:w-full mx-auto"
+/>
                     </div>
                     <div className="pointer-events-none absolute -inset-x-10 -inset-y-6 blur-2xl opacity-70 bg-[radial-gradient(closest-side,rgba(255,255,255,0.26),rgba(255,255,255,0))] animate-[glow_3.0s_ease-in-out_infinite]" />
                   </div>

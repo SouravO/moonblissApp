@@ -12,7 +12,7 @@ const PageLayout = ({ title, children }) => {
       <IonContent
         fullscreen
         style={{
-          "--background": "#1a43bf", // blue
+          "--background": "#ffffffff", // blue
           "--padding-bottom": "calc(70px + env(safe-area-inset-bottom, 0px))",
         }}
       >

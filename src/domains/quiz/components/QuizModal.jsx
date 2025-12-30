@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useCallback } from "react";
+import { useHistory } from "react-router-dom";
 import { IonIcon } from "@ionic/react";
 import {
   arrowBackOutline,
@@ -25,9 +26,11 @@ import {
  * Page version of your modal.
  *
  * Props:
- * - onClose?: () => void  // optional close handler
+ * - onClose?: () => void  // optional close handler (fallback)
  */
 const AppointmentsPage = ({ onClose }) => {
+  const history = useHistory();
+  
   // ---------- Mock data ----------
   const experts = useMemo(
     () => [
@@ -327,7 +330,14 @@ const AppointmentsPage = ({ onClose }) => {
         <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-4 bg-white/60 backdrop-blur-md border-b border-blue-200/30">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => onClose?.()}
+              onClick={() => {
+                // Try to call onClose if available, otherwise navigate back
+                if (onClose) {
+                  onClose();
+                } else {
+                  history.goBack();
+                }
+              }}
               className="w-10 h-10 rounded-2xl bg-white/60 border border-blue-300/40 flex items-center justify-center hover:bg-white/80 active:scale-95 transition"
               aria-label="Back"
               title="Back"
@@ -366,7 +376,7 @@ const AppointmentsPage = ({ onClose }) => {
                   />
                 </div>
 
-                <button
+                <div
                   onClick={() => {
                     if (
                       activeTag !== "All" ||
@@ -390,13 +400,13 @@ const AppointmentsPage = ({ onClose }) => {
                       );
                     }
                   }}
-                  className="h-11 px-3 rounded-xl bg-blue-600/20 border border-blue-400/30 hover:bg-blue-600/30 active:scale-[0.98] transition flex items-center gap-2"
+                  className="h-11  rounded-xl bg-red-600/20 border border-blue-400/30 hover:bg-blue-600/30 active:scale-[0.98] transition flex items-center gap-2"
                   aria-label="Filters"
                   title="Tap to reset filters, or cycle sort when already reset"
                 >
                   <IonIcon icon={filterOutline} className="text-lg text-blue-600" />
                   <span className="text-sm text-slate-700 hidden sm:inline">{sortBy}</span>
-                </button>
+               </div>
               </div>
             </div>
           </div>
@@ -584,13 +594,13 @@ const AppointmentsPage = ({ onClose }) => {
                         Next: <span className="text-white font-semibold">{e.next}</span>
                       </div>
 
-                      <button
+                      <div
                         onClick={() => openBooking(e)}
                         className="h-11 px-4 rounded-3xl bg-white border border-white text-blue-600 font-bold hover:bg-white/90 active:scale-[0.98] transition flex items-center gap-2"
                       >
                         <IonIcon icon={calendarOutline} />
                         Book
-                      </button>
+                      </div>
                     </div>
                   </div>
 

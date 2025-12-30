@@ -214,7 +214,7 @@ export default function OnboardingPortal({ onGetStarted }) {
               )}
 
               {step < steps.length - 1 ? (
-                <motion.button
+                <div
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => paginate(1)}
@@ -222,9 +222,9 @@ export default function OnboardingPortal({ onGetStarted }) {
                 >
                   Continue
                   <ArrowRight size={18} />
-                </motion.button>
+                </div>
               ) : (
-                <motion.button
+                <div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   whileHover={{ scale: 1.05 }}
@@ -237,7 +237,7 @@ export default function OnboardingPortal({ onGetStarted }) {
                 >
                   Get Started
                   <Sparkles size={18} />
-                </motion.button>
+                </div>
               )}
             </div>
 

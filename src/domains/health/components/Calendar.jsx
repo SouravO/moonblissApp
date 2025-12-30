@@ -338,7 +338,7 @@ const Calendar = () => {
                   <div className="grid grid-cols-2 gap-1">
                     <button
                       onClick={() => setViewMode("Month")}
-                      className={`h-10 rounded-xl text-sm font-extrabold transition ${
+                      className={`h-10 rounded-2xl text-sm font-extrabold transition ${
                         viewMode === "Month"
                           ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md shadow-blue-500/15"
                           : "text-white/60 hover:text-white"
@@ -348,7 +348,7 @@ const Calendar = () => {
                     </button>
                     <button
                       onClick={() => setViewMode("Year")}
-                      className={`h-10 rounded-xl text-sm font-extrabold transition ${
+                      className={`h-10 rounded-2xl text-sm font-extrabold transition ${
                         viewMode === "Year"
                           ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md shadow-blue-500/15"
                           : "text-white/60 hover:text-white"
